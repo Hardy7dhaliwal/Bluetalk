@@ -1,10 +1,17 @@
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:context="com.example.bluetalk.MainActivity">
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+
     <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:title="@string/action_settings"
-        app:showAsAction="never" />
+        android:id="@+id/UsersFragment"
+        android:icon="@drawable/ic_baseline_connect_without_contact_24"
+        android:title="Users" />
+
+    <item
+        android:id="@+id/ConversationListFragment"
+        android:icon="@drawable/ic_baseline_chat_24"
+        android:title="Chats" />
+
+    <item
+        android:id="@+id/SettingsFragment"
+        android:icon="@drawable/ic_baseline_settings_24"
+        android:title="Settings" />
 </menu>
