@@ -38,15 +38,15 @@ class ConversationListFragmentFragment : Fragment() {
         val conversations = listOf(
             Conversation(
                 "12", User("122", "Hardy", ""),
-                Message("1", "user1", "user2", "Hello from user1!", Date(), MessageType.SENT)
+                Message(UUID.randomUUID(), "Hello from user1!", Date(), MessageType.SENT)
             ),
             Conversation(
                 "13", User("122", "Motto", ""),
-                Message("3", "user1", "user2", "Hello from user1!", Date(), MessageType.SENT)
+                Message(UUID.randomUUID(),  "Hello from user1!", Date(), MessageType.SENT)
             ),
             Conversation(
                 "14", User("122", "Mukruu", ""),
-                Message("4", "user1", "user2", "Hello from user1!", Date(), MessageType.SENT)
+                Message(UUID.randomUUID(),  "Hello from user1!", Date(), MessageType.SENT)
             )
         )
         chatListAdapter = ChatListAdapter(requireContext(), conversations)

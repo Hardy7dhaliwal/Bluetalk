@@ -19,8 +19,8 @@
     </fragment>
 
     <fragment
-        android:id="@+id/UsersFragment"
-        android:name="com.example.bluetalk.ui.UsersFragment"
+        android:id="@+id/UsersScanFragment"
+        android:name="com.example.bluetalk.ui.UsersScanFragment"
         android:label="Devices Fragment"
         tools:layout="@layout/fragment_users">
     </fragment>

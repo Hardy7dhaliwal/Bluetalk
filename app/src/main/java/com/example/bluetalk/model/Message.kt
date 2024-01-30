@@ -4,9 +4,7 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 data class Message(
-    val id: String,
-    val senderId: String,
-    val receiverId: String,
+    val id: UUID,
     val content: String,
     val timestamp: Date,
     val messageType : MessageType
