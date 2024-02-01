@@ -1,5 +1,6 @@
 package com.example.bluetalk.ui
 
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothDevice
 import android.os.Bundle
 import android.util.Log
@@ -8,26 +9,32 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.example.bluetalk.adapter.OnDeviceClickListener
+import com.example.bluetalk.adapter.OnDeviceSelectClickListener
 import com.example.bluetalk.adapter.UserScanListAdapter
 import com.example.bluetalk.bluetooth.ChatServer
 import com.example.bluetalk.bluetooth.ScanDeviceViewModel
+import com.example.bluetalk.database.ChatDao
+import com.example.bluetalk.database.ChatDatabase
 import com.example.bluetalk.databinding.FragmentUsersBinding
+import com.example.bluetalk.model.Message
+import com.example.bluetalk.model.User
 import com.example.bluetalk.state.DeviceScanViewState
 
 private const val TAG = "UsersScanFragment"
 
-class UsersScanFragment : Fragment(), OnDeviceClickListener {
+class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
 
     private var _binding: FragmentUsersBinding? = null
     private val binding
         get() = _binding!!
 
     private val viewModel: ScanDeviceViewModel by viewModels()
-
+    private var database: ChatDatabase? = null
+    private var chatDao: ChatDao? = null
     private val <T> T.exhaustive: T
         get() = this
 
@@ -40,9 +47,10 @@ class UsersScanFragment : Fragment(), OnDeviceClickListener {
         }.exhaustive
     }
 
+    @SuppressLint("MissingPermission")
     override fun onDeviceClick(device: BluetoothDevice) {
         ChatServer.setCurrentChatConnection(device)
-
+        chatDao?.insertUser(User(device.address, device.name))
         findNavController().popBackStack()
     }
 
@@ -54,7 +62,8 @@ class UsersScanFragment : Fragment(), OnDeviceClickListener {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-
+        database = ChatDatabase.getDatabase(requireContext())
+        chatDao = database!!.chatDao()
         // Inflate the layout for this fragment
         _binding = FragmentUsersBinding.inflate(inflater, container, false)
 

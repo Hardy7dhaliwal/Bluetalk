@@ -13,6 +13,8 @@ import android.os.ParcelUuid
 import android.util.Log
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import com.example.bluetalk.database.ChatDao
+import com.example.bluetalk.database.ChatDatabase
 import com.example.bluetalk.model.MessageType
 import com.example.bluetalk.model.User
 import com.example.bluetalk.state.UserConnectionState
@@ -25,9 +27,9 @@ object ChatServer {
     // hold reference to app context to run the chat server
     private var app: Application? = null
     private lateinit var bluetoothManager: BluetoothManager
-
     private lateinit var adapter: BluetoothAdapter
-
+    private var database: ChatDatabase? = null
+    private var chatDao: ChatDao? = null
     // This property will be null if bluetooth is not enabled or if advertising is not
     // possible on the device
     private var advertiser: BluetoothLeAdvertiser? = null
@@ -36,8 +38,8 @@ object ChatServer {
     private var advertiseData: AdvertiseData = buildAdvertiseData()
 
     // LiveData for reporting the messages sent to the device
-    private val _messages = MutableLiveData<Message>()
-    val messages = _messages as LiveData<Message>
+    private val _messages = MutableLiveData<Message?>()
+    val messages = _messages as LiveData<Message?>
 
     private val _users = MutableLiveData<User>()
     val users = _users as LiveData<User>
@@ -63,7 +65,9 @@ object ChatServer {
     private var gatt: BluetoothGatt? = null
     private var messageCharacteristic: BluetoothGattCharacteristic? = null
 
+
     fun startServer(app: Application) {
+        this.app = app
         bluetoothManager = app.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager
         adapter= bluetoothManager.adapter
         if (!adapter.isEnabled) {
@@ -74,6 +78,9 @@ object ChatServer {
             setupGattServer(app)
             startAdvertisement()
         }
+
+        database = ChatDatabase.getDatabase(app)
+        chatDao = database!!.chatDao()
     }
 
     fun stopServer() {
@@ -82,10 +89,9 @@ object ChatServer {
 
     fun setCurrentChatConnection(device: BluetoothDevice) {
         currentDevice = device
-        // Set gatt so BluetoothChatFragment can display the device data
+        // Set gatt so Fragment can display the device data
         _deviceConnection.value = UserConnectionState.Connected(device)
         connectToChatDevice(device)
-
     }
 
     @SuppressLint("MissingPermission")
@@ -106,7 +112,18 @@ object ChatServer {
                 val success = it.writeCharacteristic(messageCharacteristic)
                 Log.d(TAG, "onServicesDiscovered: message send: $success")
                 if (success) {
-                    _messages.value = Message(UUID.randomUUID(),message,Date(),MessageType.SENT)
+                    val msg = gattClient?.device?.let { it1 ->
+                        Message(
+                            content = message,
+                            timestamp = System.currentTimeMillis(),
+                            messageType = MessageType.SENT,
+                            userId = it1.address
+                        )
+                    }
+                    _messages.value = msg
+                    if (msg != null) {
+                        chatDao?.insertMessage(msg)
+                    }
                 }
             } ?: run {
                 Log.d(TAG, "sendMessage: no gatt connection to send a message with")
@@ -237,8 +254,19 @@ object ChatServer {
                 gattServer?.sendResponse(device, requestId, BluetoothGatt.GATT_SUCCESS, 0, null)
                 val message = value?.toString(Charsets.UTF_8)
                 Log.d(TAG, "onCharacteristicWriteRequest: Have message: \"$message\"")
-                message?.let {
-                    _messages.postValue(Message(UUID.randomUUID(),it,Date(),MessageType.RECEIVED))
+                message?.let { it->
+                    val msg = gattClient?.device?.let { it1 ->
+                        Message(
+                            content = it,
+                            timestamp = System.currentTimeMillis(),
+                            messageType = MessageType.SENT,
+                            userId = it1.address
+                        )
+                    }
+                    _messages.postValue(msg)
+                    if (msg != null) {
+                        chatDao?.insertMessage(msg)
+                    }
                 }
             }
         }

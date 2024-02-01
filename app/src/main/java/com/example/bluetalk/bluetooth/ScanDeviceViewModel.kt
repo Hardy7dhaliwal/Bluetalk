@@ -136,7 +136,5 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
             _viewState.value = DeviceScanViewState.Error(errorMessage)
         }
     }
-
-
 }
 

@@ -1,21 +1,26 @@
 package com.example.bluetalk.ui
 
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
+import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bluetalk.R
 import com.example.bluetalk.adapter.ChatListAdapter
+import com.example.bluetalk.adapter.OnConversationSelectClickListener
+import com.example.bluetalk.bluetooth.ChatServer
 import com.example.bluetalk.model.Conversation
 import com.example.bluetalk.model.Message
 import com.example.bluetalk.model.MessageType
 import com.example.bluetalk.model.User
 import java.util.*
 
-class ConversationListFragmentFragment : Fragment() {
+class ConversationListFragmentFragment : Fragment(), OnConversationSelectClickListener {
 
     private lateinit var chatListAdapter: ChatListAdapter
     private lateinit var recyclerView: RecyclerView
@@ -35,21 +40,18 @@ class ConversationListFragmentFragment : Fragment() {
         recyclerView.layoutManager = LinearLayoutManager(context)
 
         // Initialize your adapter and set it to the RecyclerView
-        val conversations = listOf(
-            Conversation(
-                "12", User("122", "Hardy", ""),
-                Message(UUID.randomUUID(), "Hello from user1!", Date(), MessageType.SENT)
-            ),
-            Conversation(
-                "13", User("122", "Motto", ""),
-                Message(UUID.randomUUID(),  "Hello from user1!", Date(), MessageType.SENT)
-            ),
-            Conversation(
-                "14", User("122", "Mukruu", ""),
-                Message(UUID.randomUUID(),  "Hello from user1!", Date(), MessageType.SENT)
-            )
-        )
-        chatListAdapter = ChatListAdapter(requireContext(), conversations)
+
+        chatListAdapter = ChatListAdapter(requireContext(), this)
         recyclerView.adapter = chatListAdapter
+    }
+
+    fun getRemoteDevice(address: String): BluetoothDevice? {
+        val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
+        return bluetoothAdapter?.getRemoteDevice(address)
+    }
+
+    override fun onConversationClick(conversation: Conversation) {
+        getRemoteDevice(conversation.participant.id)?.let { ChatServer.setCurrentChatConnection(it) }
+        findNavController().popBackStack()
     }
 }

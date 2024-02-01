@@ -1,9 +1,10 @@
 package com.example.bluetalk.model
 
+import androidx.room.Entity
+import androidx.room.PrimaryKey
+
+@Entity
 data class User(
-    val id: String,
-    val username: String,
-    val address: String
-    //val profileImageUrl: String // URL to the user's profile image
-    // Add additional fields as needed
+    @PrimaryKey val id: String,
+    val username: String
 )

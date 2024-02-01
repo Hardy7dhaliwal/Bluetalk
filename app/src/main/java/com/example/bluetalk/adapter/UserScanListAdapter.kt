@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.bluetalk.R
 
 class UserScanListAdapter(private val context: Context,
-                      private val clickListener: OnDeviceClickListener)
+                      private val clickListener: OnDeviceSelectClickListener)
     :RecyclerView.Adapter<UserScanListAdapter.UserHolder>(){
 
     private var deviceList = listOf<BluetoothDevice>()
@@ -21,7 +21,7 @@ class UserScanListAdapter(private val context: Context,
         private val deviceAddress: TextView = view.findViewById(R.id.textViewDeviceAddress)
 
         @SuppressLint("MissingPermission")
-        fun bind(device: BluetoothDevice, clickListener: OnDeviceClickListener) {
+        fun bind(device: BluetoothDevice, clickListener: OnDeviceSelectClickListener) {
             deviceName.text = device.name ?: "Unknown Device"
             deviceAddress.text = device.address ?: "00:00:00:00:00"
             view.setOnClickListener {
@@ -51,6 +51,6 @@ class UserScanListAdapter(private val context: Context,
     }
 }
 
-interface OnDeviceClickListener {
+interface OnDeviceSelectClickListener {
     fun onDeviceClick(device: BluetoothDevice)
 }

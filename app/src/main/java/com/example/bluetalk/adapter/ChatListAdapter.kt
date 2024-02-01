@@ -1,4 +1,6 @@
 package com.example.bluetalk.adapter
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.Context
 import android.view.LayoutInflater
 import android.view.View
@@ -8,18 +10,22 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.bluetalk.R
 import com.example.bluetalk.model.Conversation
 
-class ChatListAdapter (private val context: Context, private val conversations: List<Conversation>)
+class ChatListAdapter (private val context: Context,private val clickListener: OnConversationSelectClickListener)
     :RecyclerView.Adapter<ChatListAdapter.ConversationHolder>(){
+
+    private val conversationList = listOf<Conversation>()
 
     class ConversationHolder(private val view:View): RecyclerView.ViewHolder(view){
         private val username: TextView = view.findViewById(R.id.userNameTextView)
         private val lastMessageTimestamp: TextView = view.findViewById(R.id.lastMessageTimeTextView)
         private val  lastMessage: TextView = view.findViewById(R.id.lastMessageTextView)
-        fun bind(conversation: Conversation){
+        fun bind(conversation: Conversation, clickListener: OnConversationSelectClickListener){
             username.text = conversation.participant.username
             lastMessageTimestamp.text = conversation.lastMessage.getTime()
             lastMessage.text = conversation.lastMessage.content
-
+            view.setOnClickListener{
+                clickListener.onConversationClick(conversation)
+            }
         }
     }
 
@@ -30,10 +36,15 @@ class ChatListAdapter (private val context: Context, private val conversations: 
     }
 
     override fun onBindViewHolder(holder: ConversationHolder, position: Int) {
-        holder.bind(conversations[position])
+        holder.bind(conversationList[position], clickListener)
     }
 
     override fun getItemCount(): Int {
-        return conversations.size
+        return conversationList.size
     }
+
+}
+
+interface OnConversationSelectClickListener {
+    fun onConversationClick(conversation: Conversation)
 }
