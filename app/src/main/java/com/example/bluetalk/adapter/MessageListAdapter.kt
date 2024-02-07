@@ -1,6 +1,8 @@
 package com.example.bluetalk.adapter
 
+import android.annotation.SuppressLint
 import android.content.Context
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -10,7 +12,8 @@ import com.example.bluetalk.R
 import com.example.bluetalk.model.Message
 import com.example.bluetalk.model.MessageType
 
-class MessageListAdapter (private val context: Context, private val messageList: List<Message> )
+private const val TAG = "MessageAdapter"
+class MessageListAdapter (private val context: Context )
     : RecyclerView.Adapter<RecyclerView.ViewHolder>()
 {
 
@@ -18,6 +21,8 @@ class MessageListAdapter (private val context: Context, private val messageList:
         private const val VIEW_TYPE_SENT = 1
         private const val VIEW_TYPE_RECEIVED = 2
     }
+
+    private var messageList = mutableListOf<Message>()
 
     class SentMessageViewHolder(private val view:View): RecyclerView.ViewHolder(view){
         private val textView: TextView = view.findViewById(R.id.sent_message_text)
@@ -65,4 +70,17 @@ class MessageListAdapter (private val context: Context, private val messageList:
     }
 
     override fun getItemCount() = messageList.size
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun addMessage(message: Message){
+        Log.d(TAG, "addMessage: ")
+        messageList.add(0,message)
+        notifyDataSetChanged()
+    }
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun submitList(result: List<Message>){
+        messageList = result as MutableList<Message>
+        notifyDataSetChanged()
+    }
 }

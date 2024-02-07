@@ -13,6 +13,7 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.Observer
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.example.bluetalk.R
 import com.example.bluetalk.adapter.OnDeviceSelectClickListener
 import com.example.bluetalk.adapter.UserScanListAdapter
 import com.example.bluetalk.bluetooth.ChatServer
@@ -50,8 +51,8 @@ class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
     @SuppressLint("MissingPermission")
     override fun onDeviceClick(device: BluetoothDevice) {
         ChatServer.setCurrentChatConnection(device)
-        chatDao?.insertUser(User(device.address, device.name))
-        findNavController().popBackStack()
+        chatDao?.insertUser(User(device.address, device.name?:device.address))
+        findNavController().navigate(R.id.action_userScanFragment_to_chatFragment)
     }
 
     private val userScanAdapter by lazy{

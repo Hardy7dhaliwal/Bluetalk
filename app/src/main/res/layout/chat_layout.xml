@@ -14,14 +14,6 @@
         android:theme="@style/ThemeOverlay.AppCompat.ActionBar"
         android:title="Chat App">
 
-        <ImageButton
-            android:id="@+id/button_walkie_talkie"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"/>
-            <!--android:src="@drawable/ic_walkie_talkie"
-            android:contentDescription="@string/activate_walkie_talkie"
-            style="?attr/actionButtonStyle"-->
-
     </androidx.appcompat.widget.Toolbar>
 
 

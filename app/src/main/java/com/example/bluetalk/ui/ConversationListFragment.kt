@@ -20,7 +20,7 @@ import com.example.bluetalk.model.MessageType
 import com.example.bluetalk.model.User
 import java.util.*
 
-class ConversationListFragmentFragment : Fragment(), OnConversationSelectClickListener {
+class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
 
     private lateinit var chatListAdapter: ChatListAdapter
     private lateinit var recyclerView: RecyclerView
@@ -45,7 +45,7 @@ class ConversationListFragmentFragment : Fragment(), OnConversationSelectClickLi
         recyclerView.adapter = chatListAdapter
     }
 
-    fun getRemoteDevice(address: String): BluetoothDevice? {
+    private fun getRemoteDevice(address: String): BluetoothDevice? {
         val bluetoothAdapter: BluetoothAdapter? = BluetoothAdapter.getDefaultAdapter()
         return bluetoothAdapter?.getRemoteDevice(address)
     }

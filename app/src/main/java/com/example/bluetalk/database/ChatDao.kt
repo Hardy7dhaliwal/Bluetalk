@@ -20,4 +20,7 @@ interface ChatDao {
 
     @Query("SELECT * FROM user")
     fun getAllUsers(): LiveData<List<User>>
+
+    @Query("SELECT username FROM user WHERE userId = :userId")
+    fun getUserName(userId: String): String
 }

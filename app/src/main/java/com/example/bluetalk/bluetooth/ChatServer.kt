@@ -38,8 +38,8 @@ object ChatServer {
     private var advertiseData: AdvertiseData = buildAdvertiseData()
 
     // LiveData for reporting the messages sent to the device
-    private val _messages = MutableLiveData<Message?>()
-    val messages = _messages as LiveData<Message?>
+    private val _messages = MutableLiveData<Message>()
+    val messages = _messages as LiveData<Message>
 
     private val _users = MutableLiveData<User>()
     val users = _users as LiveData<User>
@@ -259,7 +259,7 @@ object ChatServer {
                         Message(
                             content = it,
                             timestamp = System.currentTimeMillis(),
-                            messageType = MessageType.SENT,
+                            messageType = MessageType.RECEIVED,
                             userId = it1.address
                         )
                     }

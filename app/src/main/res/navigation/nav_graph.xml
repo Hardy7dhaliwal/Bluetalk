@@ -7,9 +7,21 @@
 
     <fragment
         android:id="@+id/ConversationListFragment"
-        android:name="com.example.bluetalk.ui.ConversationListFragmentFragment"
+        android:name="com.example.bluetalk.ui.ConversationListFragment"
         android:label="Conversation List Fragment"
         tools:layout="@layout/fragment_conversation_list">
+        <action
+            android:id="@+id/action_conversationListFragment_to_chatFragment"
+            app:destination="@id/ChatFragment"
+        />
+
+    </fragment>
+
+    <fragment
+        android:id="@+id/ChatFragment"
+        android:name="com.example.bluetalk.ui.ChatFragment"
+        android:label="Chat Fragment"
+        tools:layout="@layout/chat_layout">
     </fragment>
 
     <fragment
@@ -23,6 +35,10 @@
         android:name="com.example.bluetalk.ui.UsersScanFragment"
         android:label="Devices Fragment"
         tools:layout="@layout/fragment_users">
+        <action
+            android:id="@+id/action_userScanFragment_to_chatFragment"
+            app:destination="@id/ChatFragment"
+            />
     </fragment>
 
 </navigation>
