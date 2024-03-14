@@ -7,7 +7,7 @@ import androidx.room.RoomDatabase
 import com.example.bluetalk.model.Message
 import com.example.bluetalk.model.User
 
-@Database(entities = [User::class, Message::class], version = 1)
+@Database(entities = [User::class, Message::class], version = 1, exportSchema = false)
 abstract class ChatDatabase: RoomDatabase() {
     abstract fun chatDao(): ChatDao
 

@@ -22,7 +22,7 @@ class MessageListAdapter (private val context: Context )
         private const val VIEW_TYPE_RECEIVED = 2
     }
 
-    private var messageList = mutableListOf<Message>()
+    var messageList = mutableListOf<Message>()
 
     class SentMessageViewHolder(private val view:View): RecyclerView.ViewHolder(view){
         private val textView: TextView = view.findViewById(R.id.sent_message_text)
@@ -74,8 +74,8 @@ class MessageListAdapter (private val context: Context )
     @SuppressLint("NotifyDataSetChanged")
     fun addMessage(message: Message){
         Log.d(TAG, "addMessage: ")
-        messageList.add(0,message)
-        notifyDataSetChanged()
+        messageList.add(message)
+        notifyItemInserted(messageList.size-1)
     }
 
     @SuppressLint("NotifyDataSetChanged")

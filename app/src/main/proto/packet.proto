@@ -1,0 +1,10 @@
+syntax="proto3";
+package com.example.bluetalk;
+
+
+message Payload {
+    oneof payload {
+        string textMessage = 1;
+        bytes audioData = 2;
+    }
+}

@@ -19,7 +19,16 @@
         <item name="windowNoTitle">true</item>
     </style>
 
-    <style name="Theme.BlueTalk.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar" />
+    <style name="Theme.BlueTalk.AppBarOverlay" parent="ThemeOverlay.AppCompat.Dark.ActionBar">
+        <!-- Customize your app bar theme here -->
+        <item name="android:textColor">@color/white</item>
+        <item name="android:background">@color/purple_500</item>
+        <!-- Add more custom attributes if needed -->
+    </style>
 
-    <style name="Theme.BlueTalk.PopupOverlay" parent="ThemeOverlay.AppCompat.Light" />
+    <style name="Theme.BlueTalk.PopupOverlay" parent="ThemeOverlay.AppCompat.Light">
+        <!-- Customize your pop-up theme here -->
+        <item name="android:textColor">@color/teal_700</item>
+        <!-- Add more custom attributes if needed -->
+    </style>
 </resources>

@@ -13,4 +13,4 @@ dependencyResolutionManagement {
     }
 }
 rootProject.name = "BlueTalk"
-include ':app'
+include ':app', ':protobuf'

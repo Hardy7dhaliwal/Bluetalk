@@ -1,4 +1,5 @@
 package com.example.bluetalk.adapter
+import android.annotation.SuppressLint
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothDevice
 import android.content.Context
@@ -9,20 +10,23 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.example.bluetalk.R
 import com.example.bluetalk.model.Conversation
+import com.example.bluetalk.model.Message
 
 class ChatListAdapter (private val context: Context,private val clickListener: OnConversationSelectClickListener)
     :RecyclerView.Adapter<ChatListAdapter.ConversationHolder>(){
 
-    private val conversationList = listOf<Conversation>()
+    private var conversationList = listOf<Conversation>()
+
+
 
     class ConversationHolder(private val view:View): RecyclerView.ViewHolder(view){
         private val username: TextView = view.findViewById(R.id.userNameTextView)
         private val lastMessageTimestamp: TextView = view.findViewById(R.id.lastMessageTimeTextView)
         private val  lastMessage: TextView = view.findViewById(R.id.lastMessageTextView)
         fun bind(conversation: Conversation, clickListener: OnConversationSelectClickListener){
-            username.text = conversation.participant.username
-            lastMessageTimestamp.text = conversation.lastMessage.getTime()
-            lastMessage.text = conversation.lastMessage.content
+            username.text = conversation.username
+            lastMessageTimestamp.text = conversation.getTime()
+            lastMessage.text = conversation.content
             view.setOnClickListener{
                 clickListener.onConversationClick(conversation)
             }
@@ -41,6 +45,13 @@ class ChatListAdapter (private val context: Context,private val clickListener: O
 
     override fun getItemCount(): Int {
         return conversationList.size
+    }
+
+
+    @SuppressLint("NotifyDataSetChanged")
+    fun submitList(result: List<Conversation>){
+        conversationList = result
+        notifyDataSetChanged()
     }
 
 }

@@ -27,4 +27,11 @@
     <string name="attachment_summary_on">Automatically download attachments for incoming emails
     </string>
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
+    <string name="push_to_talk">Push To Talk</string>
+    <string name="looking_for_proxy">Looking for Proxy</string>
+    <string name="connecting">Connecting...</string>
+    <string name="bluetalkie">Bluetalkie</string>
+    <string name="create_username">Create Username</string>
+    <string name="create_account">Create Account</string>
+    <string name="username_hint">Username can also be updated in the Settings.</string>
 </resources>

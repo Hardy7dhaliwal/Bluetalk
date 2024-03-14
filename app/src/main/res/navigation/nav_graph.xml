@@ -22,6 +22,24 @@
         android:name="com.example.bluetalk.ui.ChatFragment"
         android:label="Chat Fragment"
         tools:layout="@layout/chat_layout">
+        <argument
+            android:name="deviceAddress"
+            app:argType="string" />
+        <argument
+            android:name="id"
+            app:argType="string"/>
+        <argument
+            android:name="name"
+            app:argType="string"/>
+        <action
+            android:id="@+id/action_chatFragment_to_walkieTalkie"
+            app:destination="@id/WalkieTalkie"
+            />
+        <action
+            android:id="@+id/action_chatFragment_to_conversations"
+            app:destination="@id/ConversationListFragment"
+            />
+
     </fragment>
 
     <fragment
@@ -40,5 +58,14 @@
             app:destination="@id/ChatFragment"
             />
     </fragment>
+
+    <fragment
+        android:id="@+id/WalkieTalkie"
+        android:name="com.example.bluetalk.ui.WalkieTalkie"
+        android:label="Walkie Talkie"
+        tools:layout="@layout/fragment_walkie_talkie"
+
+        />
+
 
 </navigation>
