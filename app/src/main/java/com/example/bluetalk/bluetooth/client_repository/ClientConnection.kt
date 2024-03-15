@@ -8,11 +8,8 @@ import android.content.Context
 import android.util.Log
 import com.example.bluetalk.Packet.Payload
 import com.example.bluetalk.bluetooth.BluetalkServer
-import com.example.bluetalk.database.ChatDao
 import com.example.bluetalk.model.MessageResponse
 import com.example.bluetalk.model.ProxyPacket
-import com.example.bluetalk.model.User
-import com.example.bluetalk.model.serializePacket
 import com.example.bluetalk.spec.MESSAGE_UUID
 import com.example.bluetalk.spec.PacketMerger
 import com.example.bluetalk.spec.PacketSplitter
@@ -21,7 +18,6 @@ import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import no.nordicsemi.android.ble.BleManager
@@ -32,18 +28,12 @@ import no.nordicsemi.android.ble.ktx.suspend
 class ClientConnection(
     context: Context,
     private val scope: CoroutineScope,
-    private val device: BluetoothDevice,
-    private val chatDao: ChatDao
+    private val device: BluetoothDevice
 ):BleManager(context) {
 
 
     private val TAG = ClientConnection::class.java.simpleName
     private var messageCharacteristic: BluetoothGattCharacteristic?=null
-    private var rreqCharacteristic: BluetoothGattCharacteristic?=null
-    private var rrepCharacteristic:BluetoothGattCharacteristic?=null
-    private var proxyCharacteristic:BluetoothGattCharacteristic?=null
-    private val _rrep_packet = MutableSharedFlow<ProxyPacket>()
-    val rrep_packet = _rrep_packet.asSharedFlow()
 
     override fun log(priority: Int, message: String) {
         Log.println(priority, TAG, message)
@@ -62,21 +52,18 @@ class ClientConnection(
     }
 
 
-//    override fun onServicesInvalidated() {
-//        messageCharacteristic = null
-////        rreqCharacteristic = null
-////        rrepCharacteristic = null
-////        proxyCharacteristic = null
-//    }
+    override fun onServicesInvalidated() {
+        messageCharacteristic = null
+    }
 
     private fun getSrcUUID(message:String):String{
         val header = message.split("\n")
-        return header[0].split(" ")[0]
+        return header[0].split(" ")[1]
     }
 
     private fun getName(message:String):String{
         val header = message.split("\n")
-        return header[0].split(" ")[3]
+        return header[0].split(" ")[4]
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -90,8 +77,7 @@ class ClientConnection(
             .onEach {
                 it.message?.let { msg ->
                     Log.d(TAG, "Received Message: $msg")
-                    chatDao.insertUser(User(uuid = getSrcUUID(msg), username = getName(msg), address = device.address))
-                    BluetalkServer.storeReceivedMsg(msg)
+                    BluetalkServer.storeReceivedMsg(msg, device.address)
                 }
                 it.audioBytes?.let {bytes->
                     Log.d(TAG,"Audio Received")
@@ -163,58 +149,31 @@ class ClientConnection(
         }
     }
 
-    suspend fun sendProxyMessage(message: String):Boolean{
-        Log.d(TAG,"Proxy Message Request Received")
-        if(!isConnected) return false
-        val messageBytes = message.toByteArray()
-        return try {
-            writeCharacteristic(
-                proxyCharacteristic,
-                messageBytes,
-                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-            ).split(PacketSplitter())
-                .enqueue()
-            true
-        }catch (e:Exception){
-            print("Write-CLient, Exception: $e")
-            false
-        }
-    }
-
-    suspend fun sendRREQ(packet: ProxyPacket):Boolean{
-        if(!isConnected) return false
-        val proxyBytes = serializePacket(packet)
-        return try {
-            writeCharacteristic(
-                rreqCharacteristic,
-                proxyBytes,
-                BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
-            ).split(PacketSplitter())
-                .enqueue()
-            true
-        }catch (e:Exception){
-            false
-        }
-    }
-
     fun release(){
         cancelQueue()
         disconnect().enqueue()
     }
 
-    suspend fun sendRREP(proxyPacket: ProxyPacket): Boolean {
+    fun sendKey(bytes: ByteArray):Boolean {
+        Log.d(TAG,"Key Exchange Request Received")
         if(!isConnected) return false
-        val proxyBytes = serializePacket(proxyPacket)
+        val payload = Payload.newBuilder()
+            .setKey(ByteString.copyFrom(bytes))
+            .build()
+        val messageBytes = payload.toByteArray()
         return try {
             writeCharacteristic(
-                rrepCharacteristic,
-                proxyBytes,
+                messageCharacteristic,
+                messageBytes,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             ).split(PacketSplitter())
+                .before{Log.d(TAG,"device: Connected: $isConnected and Ready:$isReady")}
                 .enqueue()
             true
         }catch (e:Exception){
+            println("WriteClient KEY, Exception: $e")
             false
         }
     }
+
 }

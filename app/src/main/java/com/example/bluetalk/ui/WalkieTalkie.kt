@@ -54,7 +54,8 @@ class WalkieTalkie(private val device: String) : DialogFragment() {
                         R.drawable.ic_push_to_talk_not_pushed
                     )
                     pushToTalkButton.setImageResource(R.drawable.ic_push_to_talk_not_pushed)
-                    BluetalkServer.sendAudio(device,File("recorded_audio.3gp").readBytes())
+                    stopRecording()
+                    audioFile?.readBytes()?.let { BluetalkServer.sendAudio(device, it) }
                     true // Return true to indicate the event was handled
                 }
                 else -> false // Return false for other actions

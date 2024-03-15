@@ -1,5 +1,6 @@
 package com.example.bluetalk.ui
 
+import ECDHCryptoManager
 import android.Manifest
 import android.bluetooth.BluetoothAdapter
 import android.bluetooth.BluetoothManager
@@ -25,9 +26,11 @@ import com.example.bluetalk.database.ChatDatabase
 import com.example.bluetalk.databinding.ActivityMainBinding
 import com.example.bluetalk.model.ProxyPacket
 import com.example.bluetalk.model.UUIDManager
+import com.example.bluetalk.security.ECDHCryptoManager
 import com.example.bluetalk.viewModel.SharedViewModel
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import timber.log.Timber
+import java.security.Security
 import java.util.UUID
 
 private const val TAG = "MainActivity"
@@ -48,6 +51,7 @@ class MainActivity : AppCompatActivity() {
     @RequiresApi(Build.VERSION_CODES.S)
     override fun onStart(){
         super.onStart()
+        Security.addProvider(org.spongycastle.jce.provider.BouncyCastleProvider())
         if(!hasRequiredRuntimePermissions()){
             checkAndRequestPermissions()
         }else{
@@ -61,12 +65,15 @@ class MainActivity : AppCompatActivity() {
         chatDao = database!!.chatDao()
         appUUID =  UUIDManager.getStoredUUID(this.applicationContext)
         adapter = (this.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
+
     }
 
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+
         val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this)
         val username = sharedPreferences.getString("username", "Not set")
         Timber.tag(TAG).d("Username: $username")

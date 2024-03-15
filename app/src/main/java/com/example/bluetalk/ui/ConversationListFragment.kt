@@ -26,6 +26,7 @@ import com.example.bluetalk.model.Conversation
 import com.example.bluetalk.model.DeviceInfo
 import com.example.bluetalk.model.User
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import no.nordicsemi.android.ble.ktx.state.ConnectionState
 import timber.log.Timber
@@ -45,9 +46,7 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
     private var database: ChatDatabase? = null
     private var chatDao: ChatDao? = null
 
-    private val proxyObserver = Observer<Boolean>{
-        proceed()
-    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         database = ChatDatabase.getDatabase(requireContext())
@@ -71,20 +70,10 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
         super.onViewCreated(view, savedInstanceState)
         binding.connectionProgress.visibility = View.GONE
         fetchConversations()
-        BluetalkServer.pathFound.observe(viewLifecycleOwner,proxyObserver)
     }
 
 
     private fun proceed(){
-        lifecycleScope.launch(Dispatchers.IO) {
-            val user = User(requestedUser!!.device.address,requestedUser!!.username,requestedUser!!.id)
-            if (!chatDao?.userExists(user.uuid)!!) {
-                Timber.tag(TAG).d("onDeviceClick: Inserting User %s", user.uuid)
-                //chatDao?.insertUser(user)
-            }else{
-                Timber.tag(TAG).d("onDeviceClick: User Already Existed")
-            }
-        }
         binding.connectionProgress.visibility = View.GONE
         val action =
             ConversationListFragmentDirections.actionConversationListFragmentToChatFragment(
@@ -104,7 +93,6 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
         }
     }
 
-
     override fun onConversationClick(conversation: Conversation) {
          binding.connectionProgress.visibility = View.VISIBLE
         val bAdapter =
@@ -119,13 +107,12 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
                 Timber.tag(TAG).d("Requested: %s", user.address)
             }
 
-            //BluetalkServer.findDevice(requestedUser!!.id)
-
             BluetalkServer.connectUser(d)
+            binding.connectionProgress.visibility = View.VISIBLE
+            delay(1000)
             lifecycleScope.launch(Dispatchers.Main) {
                 proceed()
             }
-
         }
     }
 

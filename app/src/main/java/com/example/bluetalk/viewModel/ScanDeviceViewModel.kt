@@ -29,6 +29,7 @@ private const val TAG = "ScanDeviceViewModel"
 // 30 second scan period
 private const val SCAN_PERIOD = 30000L
 
+@SuppressLint("MissingPermission", "LogNotTimber")
 class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
 
     //LiveData for sending the view state to the UsersFragment
@@ -68,7 +69,7 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
 
     }
 
-    @SuppressLint("MissingPermission")
+
     fun startScan() {
         scanResults.clear()
         // If advertisement is not supported on this device then other devices will not be able to
@@ -97,7 +98,7 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
         }
     }
 
-    @SuppressLint("MissingPermission")
+
     fun stopScanning() {
         Log.d(TAG, "Stopping Scanning")
         scanner?.stopScan(scanCallback)
@@ -163,8 +164,7 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
                     _foundDevice.value = deviceInfo
                     viewModelScope.launch{
                         if(chatDao.userExists(deviceInfo.id)){
-                            chatDao.updateAddress(deviceInfo.id,device.address)
-                            chatDao.updateUserName(deviceInfo.id,username)
+                            chatDao.updateSpecificFields(deviceInfo.id,username,device.address)
                         }else {
                             chatDao.insertUser(
                                 User(

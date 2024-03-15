@@ -9,9 +9,7 @@ import android.content.Context
 import android.util.Log
 import com.example.bluetalk.Packet.Payload
 import com.example.bluetalk.bluetooth.BluetalkServer
-import com.example.bluetalk.database.ChatDao
 import com.example.bluetalk.model.MessageResponse
-import com.example.bluetalk.model.User
 import com.example.bluetalk.spec.MESSAGE_UUID
 import com.example.bluetalk.spec.PacketMerger
 import com.example.bluetalk.spec.PacketSplitter
@@ -31,8 +29,7 @@ import no.nordicsemi.android.ble.ktx.asResponseFlow
 class ServerConnection(
     context: Context,
     private val scope: CoroutineScope,
-    private val device: BluetoothDevice,
-    private val chatDao:ChatDao
+    private val device: BluetoothDevice
 ):BleManager(context) {
 
     private val TAG = ServerConnection::class.java.simpleName
@@ -66,13 +63,10 @@ class ServerConnection(
 
     private fun getSrcUUID(message:String):String{
         val header = message.split("\n")
-        return header[0].split(" ")[0]
+        return header[0].split(" ")[1]
     }
 
-    private fun getName(message:String):String{
-        val header = message.split("\n")
-        return header[0].split(" ")[3]
-    }
+
 
     @OptIn(ExperimentalCoroutinesApi::class)
     override fun initialize() {
@@ -84,12 +78,15 @@ class ServerConnection(
                 it.message?.let{msg->
                     Log.d(TAG, "Received Message: $msg")
                     _messages.emit(msg)
-                    chatDao.insertUser(User(uuid = getSrcUUID(msg), username = getName(msg), address = device.address))
-                    BluetalkServer.storeReceivedMsg(msg)
+                    BluetalkServer.storeReceivedMsg(msg, device.address)
                 }
-                it.audioBytes?.let {bytes->
+                it.audioBytes?.let {audio->
                     Log.d(TAG,"Audio Received")
-                    BluetalkServer.publishAudio(bytes)
+                    BluetalkServer.publishAudio(audio)
+                }
+                it.key?.let {key ->
+                    Log.d(TAG,"Key Received")
+                    BluetalkServer.postClientPublicKey(key, device.address)
                 }
             }
             .launchIn(scope)
@@ -123,18 +120,13 @@ class ServerConnection(
         val payload = Payload.newBuilder()
             .setTextMessage(message)
             .build()
+        
         val messageBytes = payload.toByteArray()
         return try {
             sendNotification(messageCharacteristic, messageBytes)
                 .split(PacketSplitter())
                 .before{
                     Log.d(TAG,"Connected: $isConnected and Ready: $isReady")
-                    if(!isConnected){
-                        scope.launch {
-                            connect(1)
-                        }
-                        //delay(1000)
-                    }
                 }
                 .enqueue()
             true

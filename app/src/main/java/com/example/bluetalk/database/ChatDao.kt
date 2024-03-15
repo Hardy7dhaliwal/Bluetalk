@@ -12,7 +12,7 @@ import com.example.bluetalk.model.User
 @Dao
 interface ChatDao {
 
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertUser(user: User)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
@@ -39,15 +39,35 @@ interface ChatDao {
     @Query("UPDATE User SET address = :address WHERE uuid = :uuid")
     suspend fun updateAddress(uuid: String, address: String)
 
+    @Query("UPDATE User SET username = :name, address = :address WHERE uuid = :uuid")
+    suspend fun updateSpecificFields(uuid: String, name: String, address: String)
+
     @Query(
         """
-        SELECT message.id AS id, message.clientUuid AS uuid,User.uuid AS uuid, User.address AS address, message.content AS content, message.timestamp AS timestamp, User.username as username
-        FROM message
-        INNER JOIN User ON message.clientUuid = User.uuid
-        WHERE message.id IN (
-            SELECT MAX(message.id) FROM message GROUP BY message.clientUuid
-        )
-        ORDER BY message.timestamp DESC
+        SELECT 
+            m.id AS id, 
+            m.clientUuid AS uuid, 
+            u.uuid AS userUuid, 
+            u.address AS address, 
+            m.content AS content, 
+            m.timestamp AS timestamp, 
+            u.username AS username
+        FROM 
+            message m
+        INNER JOIN 
+            User u ON m.clientUuid = u.uuid
+        WHERE 
+            m.timestamp IN (
+                SELECT 
+                    MAX(message.timestamp) 
+                FROM 
+                    message 
+                GROUP BY 
+                    message.clientUuid
+            )
+        ORDER BY 
+            m.timestamp DESC
+
     """
     )
     fun getConversations(): LiveData<List<Conversation>>

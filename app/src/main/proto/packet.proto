@@ -6,5 +6,6 @@ message Payload {
     oneof payload {
         string textMessage = 1;
         bytes audioData = 2;
+		bytes key = 3;
     }
 }
