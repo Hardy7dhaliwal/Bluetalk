@@ -130,6 +130,7 @@ object BluetalkServer {
             if(isKeyExchangeMessage(msg)){
                 reportClientPublicKey(address,msg,srcID)
             }else {
+                Log.w(TAG, "Message Received from ${getName(msg)}: ${msg.split("\n")[1]}")
                 insertReceivedMsg(msg)
             }
         }else if(type==1){ //path find request
@@ -156,13 +157,15 @@ object BluetalkServer {
                 if(isKeyExchangeMessage(msg)){
                     reportClientPublicKey(address,msg,srcID,type)
                 }else{
+                    Log.w(TAG, "Message Received from ${getName(msg)}: ${msg.split("\n")[1]}")
                     insertReceivedMsg(msg)
                 }
             }else{
+                Log.w(TAG, "Forwarding Message from ${getName(msg)}: ${msg.split("\n")[1]}")
                 forwardMsg(msg,address)
             }
         }
-        Log.d(TAG, "Message: $msg")
+
     }
 
     private suspend fun insertUser(user:User){
@@ -415,7 +418,7 @@ object BluetalkServer {
                                 .apply {
                                     messages
                                         .onEach {
-                                            Log.d(TAG, "Message Received: serverManager")
+                                            //Log.d(TAG, "Message Received: serverManager")
                                         }
                                 }
                                 .apply {
@@ -545,11 +548,10 @@ object BluetalkServer {
     }
 
     private fun reportClientPublicKey(device:String, receivedMsg:String, dstID: String, connectionType: Int=0){
-        Log.w(TAG,"Key Received")
         if(keyStorage[dstID]==null){
             exchangeKeys(device, dstID,connectionType)
         }
-        Log.w(TAG,"Key: ${receivedMsg.split("\n")[1]}")
+        Log.w(TAG,"Key Received From ${getName(receivedMsg)}:\n\t${receivedMsg.split("\n")[1]}")
         keyStorage[dstID]?.deriveSharedSecret(Base64.getDecoder().decode(receivedMsg.split("\n")[1]))
     }
 
@@ -557,7 +559,6 @@ object BluetalkServer {
 
     fun exchangeKeys(device:String, dstUuid:String, connectionType:Int=0) {
         if(keyStorage[dstUuid]==null || keyStorage[dstUuid]?.isInittialized() == false) {
-            Log.w(TAG, "Key Sent")
             val sharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(app!!.applicationContext)
             val username = sharedPreferences.getString("username", "Not set")
@@ -565,7 +566,7 @@ object BluetalkServer {
             val ecdh = CryptoManager()
             val publicKey = ecdh.getPublicKey()
             keyStorage[dstUuid] = ecdh
-            Log.w(TAG, "Key: ${Base64.getEncoder().encodeToString(publicKey)}")
+            Log.w(TAG, "Key Sent From $username:\n\t${Base64.getEncoder().encodeToString(publicKey)}")
             if (connectionType == 0) {
                 sendMessage(device, "$header\n${Base64.getEncoder().encodeToString(publicKey)}")
             } else {
