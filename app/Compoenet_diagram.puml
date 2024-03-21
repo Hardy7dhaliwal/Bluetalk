@@ -1,0 +1,23 @@
+@startuml
+
+package "BlueTalkie App" {
+    [UI] --> [BluetalkServer] : uses
+    [BluetalkServer] --> [Bluetooth Adapter] : controls
+    [BluetalkServer] --> [AdvertisingManager] : manages advertisements
+    [BluetalkServer] --> [Database] : stores/retrieves data
+    [BluetalkServer] --> [CryptoManager] : encrypts/decrypts messages
+    [BluetalkServer] --> [Scanner] : scans devices
+    [BluetalkServer] ..> [ClientConnection] : establishes
+    [BluetalkServer] ..> [ServerConnection] : establishes
+    [Database] - [User]
+    [Database] - [Message]
+
+    [Database] <-- [UI] : displays data
+    [CryptoManager] .up.> [UI] : shows encryption option
+    [User] <-- [UI]
+    [Message] <-- [UI]
+    [Conversation] <-- [UI]
+}
+
+
+@enduml

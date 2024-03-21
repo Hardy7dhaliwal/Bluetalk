@@ -92,7 +92,7 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
 
             // Kick off a new scan
             scanCallback = DeviceScanCallback()
-            scanner?.startScan(scanFilters, scanSettings, scanCallback)
+            scanner?.startScan(null, scanSettings, scanCallback)
         } else {
             Log.d(TAG, "Already scanning")
         }

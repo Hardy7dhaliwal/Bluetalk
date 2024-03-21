@@ -9,7 +9,6 @@ import android.util.Log
 import com.example.bluetalk.Packet.Payload
 import com.example.bluetalk.bluetooth.BluetalkServer
 import com.example.bluetalk.model.MessageResponse
-import com.example.bluetalk.model.ProxyPacket
 import com.example.bluetalk.spec.MESSAGE_UUID
 import com.example.bluetalk.spec.PacketMerger
 import com.example.bluetalk.spec.PacketSplitter
@@ -17,10 +16,10 @@ import com.example.bluetalk.spec.SERVICE_UUID
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
 import no.nordicsemi.android.ble.BleManager
+import no.nordicsemi.android.ble.exception.RequestFailedException
 import no.nordicsemi.android.ble.ktx.asResponseFlow
 import no.nordicsemi.android.ble.ktx.suspend
 
@@ -77,7 +76,7 @@ class ClientConnection(
             .onEach {
                 it.message?.let { msg ->
                     Log.d(TAG, "Received Message: $msg")
-                    BluetalkServer.storeReceivedMsg(msg, device.address)
+                    BluetalkServer.processReceivedMsg(msg, device.address)
                 }
                 it.audioBytes?.let {bytes->
                     Log.d(TAG,"Audio Received")
@@ -85,8 +84,10 @@ class ClientConnection(
                 }
             }
             .launchIn(scope)
-        enableNotifications(messageCharacteristic).enqueue()
+        //enableNotifications(messageCharacteristic).enqueue()
     }
+
+
 
 
 
@@ -97,8 +98,8 @@ class ClientConnection(
                 .useAutoConnect(false)
                 .timeout(0)
                 .suspend()
-        }catch (e:Exception){
-            Log.d(TAG,"Exception: $e")
+        }catch (e:RequestFailedException){
+            Log.w(TAG,"RequestFailedException: $e")
         }
     }
 
@@ -154,11 +155,11 @@ class ClientConnection(
         disconnect().enqueue()
     }
 
-    fun sendKey(bytes: ByteArray):Boolean {
-        Log.d(TAG,"Key Exchange Request Received")
+    fun sendSOS(message: String):Boolean{
+        Log.d(TAG,"SOS Request Received")
         if(!isConnected) return false
         val payload = Payload.newBuilder()
-            .setKey(ByteString.copyFrom(bytes))
+            .setSos(message)
             .build()
         val messageBytes = payload.toByteArray()
         return try {
@@ -171,7 +172,7 @@ class ClientConnection(
                 .enqueue()
             true
         }catch (e:Exception){
-            println("WriteClient KEY, Exception: $e")
+            print("WriteCLient, Exception: $e")
             false
         }
     }

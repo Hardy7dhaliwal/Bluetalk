@@ -9,11 +9,13 @@ class MessageResponse:ReadResponse() {
     var message:String?=null
     var audioBytes:ByteArray?=null
     var key: ByteArray?=null
+    var sosMsg:String?=null
     override fun onDataReceived(device: BluetoothDevice, data: Data) {
         val bytes = data.value!!
         val payload = Payload.parseFrom(bytes)
         if(payload.hasTextMessage()){message = payload.textMessage}
         if(payload.hasAudioData()) {audioBytes = payload.audioData.toByteArray()}
         if(payload.hasKey()) {key = payload.key.toByteArray()}
+        if(payload.hasSos()) {sosMsg = payload.sos}
     }
 }

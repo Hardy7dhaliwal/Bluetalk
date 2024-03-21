@@ -1,0 +1,55 @@
+@startuml
+
+
+package "bluetooth" {
+    package "client_repository" {
+        class ClientConnection
+        class ScannerRepository
+    }
+    package "server_repository" {
+        class AdvertisingManager
+        class ServerConnection
+        class ServerManager
+    }
+    class BluetalkServer
+}
+
+package "database" {
+    class ChatDao
+    class ChatDatabase
+}
+
+package "model" {
+    class Conversation
+    class Message
+    class User
+}
+
+package "security" {
+    class CryptoManager
+}
+
+package "ui" {
+    class ChatFragment
+    class ConversationListFragment
+    class LoginActivity
+    class MainActivity
+    class SettingsFragment
+    class UsersScanFragment
+    class WalkieTalkie
+}
+
+package "viewModel" {
+    class ScanDeviceViewModel
+}
+
+' Define relationships
+
+"bluetooth"-->"database"
+database --> model
+security ..> bluetooth
+ui <--> viewModel
+ui <--> "bluetooth"
+
+
+@enduml

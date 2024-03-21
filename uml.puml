@@ -1,0 +1,500 @@
+@startuml
+
+class com.example.bluetalk.ui.MainActivity {
+- int RUNTIME_PERMISSION_REQUEST_CODE
+- androidx.navigation.ui.AppBarConfiguration appBarConfiguration
+- com.example.bluetalk.databinding.ActivityMainBinding binding
+- com.example.bluetalk.database.ChatDatabase database
+- com.example.bluetalk.database.ChatDao chatDao
+- com.example.bluetalk.viewModel.SharedViewModel model
+- java.util.UUID appUUID
+- android.bluetooth.BluetoothAdapter adapter
+- java.util.List<com.example.bluetalk.model.ProxyPacket> processedRReq
+# void onStart()
+# void onCreate(android.os.Bundle)
++ boolean hasRequiredRuntimePermissions()
+- void checkAndRequestPermissions()
++ void onRequestPermissionsResult(int,java.lang.String[],int[])
+# void onStop()
+- void showSOSAlert(java.lang.String)
+}
+
+
+
+class com.example.bluetalk.ui.ChatFragment {
+-  isConnected
+- ChatFragmentArgs args
+- ChatLayoutBinding? _binding
+- ChatLayoutBinding binding
+- ChatDatabase? database
+- ChatDao? chatDao
+- Boolean enableEncryption
+- MessageListAdapter messageListAdapter
+- UUID appUUID
+-  inputMethodManager
+-  proxyObserver
++ void onCreate(Bundle?)
++ void onCreateView(void,LayoutInflater,ViewGroup?,void,Bundle?)
++ void null()
++ void onViewCreated(View,Bundle?)
+- Flow<ConnectionState?> getConnectionStateForDevice(String)
+- void loadMessagesFromDatabase(String)
++ void onStart()
+- void chatOneToOne(String)
+- void chatOneToProxy(String)
+- void showDisconnected(BluetoothDevice)
+- void hideKeyboard()
+- void showProxyDialog()
+- void showEncryptionDialog()
+}
+
+
+class com.example.bluetalk.viewModel.ScanDeviceViewModelKt {
+- {static} java.lang.String TAG
+- {static} long SCAN_PERIOD
+}
+
+class com.example.bluetalk.model.Conversation {
+- long id
+- java.lang.String address
+- java.lang.String uuid
+- java.lang.String username
+- java.lang.String content
+- long timestamp
++ long getId()
++ java.lang.String getAddress()
++ java.lang.String getUuid()
++ java.lang.String getUsername()
++ java.lang.String getContent()
++ long getTimestamp()
++ java.lang.String getTime()
++ long component1()
++ java.lang.String component2()
++ java.lang.String component3()
++ java.lang.String component4()
++ java.lang.String component5()
++ long component6()
++ boolean equals(java.lang.Object)
++ int hashCode()
++ java.lang.String toString()
+}
+
+
+
+class com.example.bluetalk.ui.UsersScanFragment {
+-  wasConnected
+- FragmentUsersBinding? _binding
+-  binding
+- ScanDeviceViewModel viewModel
+- ChatDatabase? database
+- ChatDao? chatDao
+- ProgressBar? progressBar
+- DeviceInfo? requestedUser
+- UUID appUUID
+- T exhaustive
+-  viewStateObserver
+-  userScanAdapter
++ void onDeviceClick(DeviceInfo)
++ void onCreateView(void,LayoutInflater,ViewGroup?,void,Bundle?)
++ void null()
++ void onViewCreated(View,Bundle?)
+- void proceed()
+- void showLoading()
+- void showResults(Map<String, DeviceInfo>)
+- void showError(String)
+- void showAdvertisingError()
++ void onStop()
++ void onDestroy()
+}
+
+
+
+class com.example.bluetalk.ui.ConversationListFragment {
+- com.example.bluetalk.model.DeviceInfo requestedUser
+- com.example.bluetalk.databinding.FragmentConversationListBinding _binding
+- com.example.bluetalk.adapter.ChatListAdapter chatListAdapter
+- com.example.bluetalk.database.ChatDatabase database
+- com.example.bluetalk.database.ChatDao chatDao
+- com.example.bluetalk.databinding.FragmentConversationListBinding getBinding()
++ void onCreate(android.os.Bundle)
++ android.view.View onCreateView(android.view.LayoutInflater,android.view.ViewGroup,android.os.Bundle)
++ void onViewCreated(android.view.View,android.os.Bundle)
+- void proceed()
+- void fetchConversations()
++ void onConversationClick(com.example.bluetalk.model.Conversation)
+}
+
+
+class com.example.bluetalk.ui.SettingsFragment {
++ void onCreatePreferences(android.os.Bundle,java.lang.String)
++ void onResume()
++ void onPause()
++ void onSharedPreferenceChanged(android.content.SharedPreferences,java.lang.String)
+- void updateUsernameSummary()
++ void onDestroy()
+}
+
+class com.example.bluetalk.bluetooth.server_repository.ServerConnection {
+- kotlinx.coroutines.CoroutineScope scope
+- android.bluetooth.BluetoothDevice device
+- java.lang.String TAG
+- android.bluetooth.BluetoothGattCharacteristic messageCharacteristic
+- kotlinx.coroutines.flow.MutableSharedFlow<java.lang.String> _messages
+- kotlinx.coroutines.flow.SharedFlow<java.lang.String> messages
++ kotlinx.coroutines.flow.SharedFlow<java.lang.String> getMessages()
++ void log(int,java.lang.String)
++ int getMinLogPriority()
+# boolean isRequiredServiceSupported(android.bluetooth.BluetoothGatt)
+# void onServerReady(android.bluetooth.BluetoothGattServer)
+- java.lang.String getSrcUUID(java.lang.String)
+# void initialize()
+# void onServicesInvalidated()
+# boolean shouldClearCacheWhenDisconnected()
++ java.lang.Object connect(int,kotlin.coroutines.Continuation<? super kotlin.Unit>)
++ java.lang.Object sendMessage(java.lang.String,kotlin.coroutines.Continuation<? super java.lang.Boolean>)
++ java.lang.Object sendAudio(byte[],kotlin.coroutines.Continuation<? super java.lang.Boolean>)
++ void release()
+}
+
+
+
+
+class com.example.bluetalk.viewModel.ScanDeviceViewModel {
+-  _viewState
++  viewState
+-  scanResults
+-  _foundDevice
++  foundDevice
+- BluetoothAdapter adapter
+- BluetoothLeScanner? scanner
+- DeviceScanCallback? scanCallback
+- List<ScanFilter> scanFilters
+- ScanSettings scanSettings
+- ChatDatabase database
+- ChatDao chatDao
++ void onCleared()
++ void startScan()
++ void stopScanning()
+- List<ScanFilter> buildScanFilters()
+- ScanSettings buildScanSettings()
+- UUID? getUserID(List<ParcelUuid>)
+}
+
+
+class com.example.bluetalk.bluetooth.server_repository.AdvertisingManager {
+- java.util.UUID appID
+- java.lang.String userName
+- android.bluetooth.BluetoothAdapter bluetoothAdapter
+- java.lang.String address
+- kotlin.Lazy bluetoothLeAdvertiser$delegate
+- android.bluetooth.le.AdvertiseCallback advertisingCallback
++ java.lang.String getAddress()
+- android.bluetooth.le.BluetoothLeAdvertiser getBluetoothLeAdvertiser()
++ java.lang.Object startAdvertising(kotlin.coroutines.Continuation<? super kotlin.Unit>)
++ void stopAdvertising()
+}
+
+
+class com.example.bluetalk.model.UUIDManager {
+- {static} java.lang.String PREFS_NAME
+- {static} java.lang.String UUID_KEY
++ {static} com.example.bluetalk.model.UUIDManager INSTANCE
++ java.util.UUID getStoredUUID(android.content.Context)
++ byte[] uuidToBytes(java.util.UUID)
++ java.util.UUID bytesToUUID(byte[])
+}
+
+
+
+
+
+class com.example.bluetalk.model.MessageResponse {
+- java.lang.String message
+- byte[] audioBytes
+- byte[] key
+- java.lang.String sosMsg
++ java.lang.String getMessage()
++ void setMessage(java.lang.String)
++ byte[] getAudioBytes()
++ void setAudioBytes(byte[])
++ byte[] getKey()
++ void setKey(byte[])
++ java.lang.String getSosMsg()
++ void setSosMsg(java.lang.String)
++ void onDataReceived(android.bluetooth.BluetoothDevice,no.nordicsemi.android.ble.data.Data)
+}
+
+
+
+
+class ECDHCryptoManager {
+- PublicKey publicKey
+- PrivateKey privateKey
+- ByteArray sharedSecret
+- void generateECDHKeyPair()
++ ByteArray getPublicKey()
++ void deriveSharedSecret(ByteArray)
+}
+
+
+
+
+class com.example.bluetalk.ui.UsersScanFragment {
+- boolean wasConnected
+- com.example.bluetalk.databinding.FragmentUsersBinding _binding
+- kotlin.Lazy viewModel$delegate
+- com.example.bluetalk.database.ChatDatabase database
+- com.example.bluetalk.database.ChatDao chatDao
++ void onViewCreated(android.view.View,android.os.Bundle)
+- void proceed()
+- void showLoading()
+- void showResults(java.util.Map<java.lang.String,com.example.bluetalk.model.DeviceInfo>)
+- void showError(java.lang.String)
+- void showAdvertisingError()
++ void onStop()
++ void onDestroy()
+}
+
+
+class com.example.bluetalk.ui.WalkieTalkie {
+- java.lang.String device
+- com.example.bluetalk.databinding.FragmentWalkieTalkieBinding _binding
+- android.widget.ImageButton pushToTalkButton
+- android.media.MediaRecorder audioRecorder
+- java.io.File audioFile
+- com.example.bluetalk.databinding.FragmentWalkieTalkieBinding getBinding()
++ android.view.View onCreateView(android.view.LayoutInflater,android.view.ViewGroup,android.os.Bundle)
+- void startRecording()
+- void stopRecording()
+}
+
+
+
+class com.example.bluetalk.bluetooth.client_repository.ClientConnection {
+- kotlinx.coroutines.CoroutineScope scope
+- android.bluetooth.BluetoothDevice device
+- java.lang.String TAG
+- android.bluetooth.BluetoothGattCharacteristic messageCharacteristic
++ void log(int,java.lang.String)
++ int getMinLogPriority()
+# boolean isRequiredServiceSupported(android.bluetooth.BluetoothGatt)
+# void onServicesInvalidated()
+- java.lang.String getSrcUUID(java.lang.String)
+- java.lang.String getName(java.lang.String)
+# void initialize()
++ java.lang.Object connect(kotlin.coroutines.Continuation<? super kotlin.Unit>)
++ java.lang.Object sendMessage(java.lang.String,kotlin.coroutines.Continuation<? super java.lang.Boolean>)
++ boolean sendAudio(byte[])
++ void release()
++ boolean sendKey(byte[])
+}
+
+
+
+
+class com.example.bluetalk.model.DeviceInfo {
+- android.bluetooth.BluetoothDevice device
+- java.lang.String username
+- java.lang.String id
++ android.bluetooth.BluetoothDevice getDevice()
++ java.lang.String getUsername()
++ java.lang.String getId()
++ android.bluetooth.BluetoothDevice component1()
++ java.lang.String component2()
++ java.lang.String component3()
++ com.example.bluetalk.model.DeviceInfo copy(android.bluetooth.BluetoothDevice,java.lang.String,java.lang.String)
++ boolean equals(java.lang.Object)
++ int hashCode()
++ java.lang.String toString()
+}
+
+
+class com.example.bluetalk.bluetooth.Path {
+}
+class com.example.bluetalk.bluetooth.BluetalkServer {
+-  TAG
+- Application? app
+- UUID? appID
+- CoroutineScope? coroutineScope
+- BluetoothAdapter? adapter
+- AdvertisingManager? advertisementManager
+- ServerManager? serverManger
+-  _messages
++  messages
+-  _connectionStates
++ StateFlow<Map<String, ConnectionState>> connectionStates
+-  processingBroadcastMsg
+- ChatDatabase? database
+- ChatDao? chatDao
++  clientConnections
++  serverConnections
+-  clients
++ ScannerRepository? scanner
+-  _foundPath
++  foundPath
+-  _sosRequest
++  sosRequest
+- Job? job
+-  paths
+-  processedDevicesForMessages
+-  keyStorage
+- void addOrUpdatePathOnRREQ(String,String,String)
++ void updatePathOnRREP(String,String,String)
++ Path? getPath(String,String)
+- String makeRREP(String)
++ void storeReceivedMsg(String,String)
++ void insertUser(User)
++ void forwardMsg(String,String)
+- void insertMsg(String)
+- void insertMessageInDb(Message)
++ void broadcastMessage(String,String)
++ void sendAudio(String,ByteArray)
++ void startServer(Application,CoroutineScope)
++ void connectUser(BluetoothDevice)
++ void sendMessage(String,String)
+- void startServerManager()
++ void disconnectAll()
++ void stopServer()
++ void disconnectFrom(String)
+- String getSrcUUID(String)
+- String getDestUUID(String)
+- String getMsgID(String)
+- Int getMsgType(String)
+- String getName(String)
++ void reportSOS(String)
++ void publishAudio(ByteArray)
+- void playAudioFromByteArray(Context,ByteArray)
++ void postClientPublicKey(ByteArray,String)
++ void exchangeKeys(String,String)
+- void sendKey(String,ByteArray)
++ void broadcastSOS(String)
+}
+
+
+interface com.example.bluetalk.database.ChatDao {
++ void insertUser(User)
++ void insertMessage(Message)
++ LiveData<List<Message>> getMessagesForUser(String)
++ LiveData<List<User>> getAllUsers()
++ User? getUserByAddress(String)
++ User? getUserByUUID(String)
++ Boolean userExists(String)
++ void updateUserName(String,String)
++ void updateAddress(String,String)
++ void updateSpecificFields(String,String,String)
++ LiveData<List<Conversation>> getConversations()
+}
+
+
+
+class com.example.bluetalk.bluetooth.server_repository.ServerManager {
+- java.lang.String TAG
++ void log(int,java.lang.String)
++ int getMinLogPriority()
+# java.util.List<android.bluetooth.BluetoothGattService> initializeServer()
+}
+
+
+
+
+class com.example.bluetalk.model.User {
+- java.lang.String uuid
+- java.lang.String username
+- java.lang.String address
++ java.lang.String getUuid()
++ java.lang.String getUsername()
++ void setUsername(java.lang.String)
++ java.lang.String getAddress()
++ void setAddress(java.lang.String)
++ java.lang.String component1()
++ java.lang.String component2()
++ java.lang.String component3()
++ com.example.bluetalk.model.User copy(java.lang.String,java.lang.String,java.lang.String)
++ boolean equals(java.lang.Object)
++ int hashCode()
++ java.lang.String toString()
+}
+
+
+class com.example.bluetalk.viewModel.ScanDeviceViewModel {
+- androidx.lifecycle.MutableLiveData<com.example.bluetalk.state.DeviceScanViewState> _viewState
+- androidx.lifecycle.LiveData<com.example.bluetalk.state.DeviceScanViewState> viewState
+- java.util.Map<java.lang.String,com.example.bluetalk.model.DeviceInfo> scanResults
+- androidx.lifecycle.MutableLiveData<com.example.bluetalk.model.DeviceInfo> _foundDevice
+- androidx.lifecycle.LiveData<com.example.bluetalk.model.DeviceInfo> foundDevice
+- android.bluetooth.BluetoothAdapter adapter
+- android.bluetooth.le.BluetoothLeScanner scanner
+- com.example.bluetalk.viewModel.ScanDeviceViewModel.DeviceScanCallback scanCallback
+- java.util.List<android.bluetooth.le.ScanFilter> scanFilters
+- android.bluetooth.le.ScanSettings scanSettings
+- com.example.bluetalk.database.ChatDatabase database
+- com.example.bluetalk.database.ChatDao chatDao
++ androidx.lifecycle.LiveData<com.example.bluetalk.state.DeviceScanViewState> getViewState()
++ androidx.lifecycle.LiveData<com.example.bluetalk.model.DeviceInfo> getFoundDevice()
+# void onCleared()
++ void startScan()
++ void stopScanning()
+- java.util.List<android.bluetooth.le.ScanFilter> buildScanFilters()
+- android.bluetooth.le.ScanSettings buildScanSettings()
+- java.util.UUID getUserID(java.util.List<android.os.ParcelUuid>)
+}
+
+
+
+class ECDHCryptoManager {
+- java.security.PublicKey publicKey
+- java.security.PrivateKey privateKey
+- byte[] sharedSecret
+- void generateECDHKeyPair()
++ byte[] getPublicKey()
++ void deriveSharedSecret(byte[])
+}
+
+
+class com.example.bluetalk.ui.MainActivity {
+-  RUNTIME_PERMISSION_REQUEST_CODE
+- AppBarConfiguration appBarConfiguration
+- ActivityMainBinding binding
+- ChatDatabase? database
+- ChatDao? chatDao
+- SharedViewModel model
+- UUID appUUID
+- BluetoothAdapter adapter
+-  processedRReq
+-  sosObserver
++ void onStart()
++ void onCreate(Bundle?)
++ Boolean hasRequiredRuntimePermissions()
+- void checkAndRequestPermissions()
++ void onRequestPermissionsResult(Int,Array<out String>,IntArray)
++ void onStop()
+- void showSOSAlert(String)
+}
+
+
+class com.example.bluetalk.model.Message {
+- java.lang.String id
+- java.lang.String clientUuid
+- java.lang.String content
+- long timestamp
+- com.example.bluetalk.model.MessageType messageType
++ java.lang.String getId()
++ java.lang.String getClientUuid()
++ java.lang.String getContent()
++ long getTimestamp()
++ com.example.bluetalk.model.MessageType getMessageType()
++ java.lang.String getTime()
++ java.lang.String component1()
++ java.lang.String component2()
++ java.lang.String component3()
++ long component4()
++ com.example.bluetalk.model.MessageType component5()
++ com.example.bluetalk.model.Message copy(java.lang.String,java.lang.String,java.lang.String,long,com.example.bluetalk.model.MessageType)
++ boolean equals(java.lang.Object)
++ int hashCode()
++ java.lang.String toString()
+}
+
+
+
+@enduml

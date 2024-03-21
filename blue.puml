@@ -1,0 +1,90 @@
+@startuml
+
+class com.example.bluetalk.bluetooth.BluetalkServer {
+}
+
+class com.example.bluetalk.ui.ChatFragmentDirections {
+}
+
+class com.example.bluetalk.ui.MainActivity {
+}
+
+class com.example.bluetalk.database.ChatDao_Impl {
+}
+
+class com.example.bluetalk.ui.ConversationListFragment {
+}
+
+class com.example.bluetalk.ui.UsersScanFragment {
+}
+
+class com.example.bluetalk.ui.WalkieTalkie {
+}
+
+class com.example.bluetalk.database.ChatDatabase_Impl {
+}
+
+class com.example.bluetalk.ui.ProxyFragment {
+}
+
+class com.example.bluetalk.ui.LoginFragment {
+}
+
+class com.example.bluetalk.state.UserConnectionState {
+}
+
+class com.example.bluetalk.state.UserConnectionState$Connected {
+}
+
+class com.example.bluetalk.state.UserConnectionState$Disconnected {
+}
+
+class com.example.bluetalk.ui.ChatFragment {
+}
+
+class com.example.bluetalk.viewModel.SharedViewModel {
+}
+
+class com.example.bluetalk.viewModel.ScanDeviceViewModel {
+}
+
+class com.example.bluetalk.database.ChatDatabase {
+}
+
+class com.example.bluetalk.model.Message {
+}
+
+class com.example.bluetalk.model.Conversation {
+}
+
+class com.example.bluetalk.model.ProxyPacket {
+}
+
+class com.example.bluetalk.model.DeviceInfo {
+}
+
+class com.example.bluetalk.model.User {
+}
+
+class com.example.bluetalk.bluetooth.client_repository.ScannerRepository {
+}
+
+class com.example.bluetalk.bluetooth.client_repository.ClientConnection {
+}
+
+class com.example.bluetalk.bluetooth.server_repository.ServerConnection {
+}
+
+class com.example.bluetalk.bluetooth.server_repository.ServerManager {
+}
+
+class com.example.bluetalk.bluetooth.server_repository.AdvertisingManager {
+}
+
+class com.example.bluetalk.bluetooth.server_repository.AdvertisingException {
+}
+
+class com.example.bluetalk.bluetooth.client_repository.ScanningException {
+}
+
+@enduml

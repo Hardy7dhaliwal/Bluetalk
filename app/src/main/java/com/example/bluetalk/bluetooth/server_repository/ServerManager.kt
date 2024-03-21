@@ -5,9 +5,6 @@ import android.bluetooth.BluetoothGattService
 import android.content.Context
 import android.util.Log
 import com.example.bluetalk.spec.MESSAGE_UUID
-import com.example.bluetalk.spec.PROXY_MESSAGE_UUID
-import com.example.bluetalk.spec.RREP_UUID
-import com.example.bluetalk.spec.RREQ_UUID
 import com.example.bluetalk.spec.SERVICE_UUID
 import no.nordicsemi.android.ble.BleServerManager
 
@@ -32,26 +29,12 @@ class ServerManager(
                 SERVICE_UUID,
                 characteristic(
                     MESSAGE_UUID,
-                    BluetoothGattCharacteristic.PROPERTY_WRITE or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
-                    BluetoothGattCharacteristic.PERMISSION_WRITE,
-                    cccd(),
-                    description("A sample client server interaction.", false)
+                    BluetoothGattCharacteristic.PROPERTY_WRITE,// or BluetoothGattCharacteristic.PROPERTY_NOTIFY,
+                    BluetoothGattCharacteristic.PERMISSION_WRITE
+//                    cccd(),
+//                    description("A sample client server interaction.", false)
                 )
-//                characteristic(
-//                    RREQ_UUID,
-//                    BluetoothGattCharacteristic.PROPERTY_WRITE,
-//                    BluetoothGattCharacteristic.PERMISSION_WRITE
-//                ),
-//                characteristic(
-//                    PROXY_MESSAGE_UUID,
-//                    BluetoothGattCharacteristic.PROPERTY_WRITE,
-//                    BluetoothGattCharacteristic.PERMISSION_WRITE
-//                ),
-//                characteristic(
-//                    RREP_UUID,
-//                     BluetoothGattCharacteristic.PROPERTY_WRITE ,
-//                    BluetoothGattCharacteristic.PERMISSION_WRITE,
-//                )
+
             )
         )
     }

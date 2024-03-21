@@ -1,14 +1,20 @@
 package com.example.bluetalk.ui
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.bluetooth.BluetoothManager
 import android.content.Context
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ProgressBar
+import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
@@ -94,29 +100,34 @@ class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
         }
         return binding.root
     }
+    @RequiresApi(Build.VERSION_CODES.S)
+    fun hasRequiredRuntimePermissions(): Boolean {
+        val requiredPermissions = listOf(
+            Manifest.permission.BLUETOOTH_SCAN,
+            Manifest.permission.BLUETOOTH_CONNECT,
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.ACCESS_COARSE_LOCATION,
+            Manifest.permission.BLUETOOTH_ADVERTISE,
+            Manifest.permission.RECORD_AUDIO
+        )
 
+        return requiredPermissions.all { permission ->
+            ContextCompat.checkSelfPermission(requireContext(), permission) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
+
+    @RequiresApi(Build.VERSION_CODES.S)
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-        binding.connectionProgress.visibility = View.GONE
-        userScanAdapter.clear()
-        viewModel.startScan()
-
-        viewModel.viewState.observe(viewLifecycleOwner, viewStateObserver)
-//        showLoading()
-//        lifecycleScope.launch {
-//            val job = launch(Dispatchers.IO) {
-//                BluetalkServer.scanner?.devices?.collect { device ->
-//                    launch(Dispatchers.Main) {
-//                        progressBar?.visibility = View.GONE
-//                    }
-//                    Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id}")
-//                    userScanAdapter.add(device)
-//                }
-//            }
-//            BluetalkServer.scanner?.searchDevices()
-//            delay(30000) // Keep scanning for a certain period
-
-//        }
+        if(hasRequiredRuntimePermissions()){
+            binding.connectionProgress.visibility = View.GONE
+            userScanAdapter.clear()
+            viewModel.startScan()
+            viewModel.viewState.observe(viewLifecycleOwner, viewStateObserver)
+        }else{
+            Toast.makeText(requireContext(),"Need Bluetooth Permissions to start Scan",Toast.LENGTH_LONG).show()
+        }
     }
 
     private fun proceed(){
@@ -125,10 +136,7 @@ class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
             lifecycleScope.launch(Dispatchers.IO) {
                 val user =
                     requestedUser?.device?.address?.let {
-                        User(
-                            it,
-                            requestedUser!!.username, requestedUser!!.id
-                        )
+                        User(it,requestedUser!!.username, requestedUser!!.id)
                     }
                 Log.d(TAG, "onDeviceClick: Inserting User $user.uuid")
                 if (user != null) {

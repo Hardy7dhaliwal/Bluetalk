@@ -5,16 +5,15 @@ import android.app.AlertDialog
 import android.bluetooth.BluetoothManager
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.Observer
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
+import androidx.preference.PreferenceManager
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.example.bluetalk.adapter.ChatListAdapter
 import com.example.bluetalk.adapter.OnConversationSelectClickListener
@@ -24,11 +23,10 @@ import com.example.bluetalk.database.ChatDatabase
 import com.example.bluetalk.databinding.FragmentConversationListBinding
 import com.example.bluetalk.model.Conversation
 import com.example.bluetalk.model.DeviceInfo
-import com.example.bluetalk.model.User
+import com.example.bluetalk.model.UUIDManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import no.nordicsemi.android.ble.ktx.state.ConnectionState
 import timber.log.Timber
 
 
@@ -69,6 +67,9 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         binding.connectionProgress.visibility = View.GONE
+        binding.sosButton.setOnClickListener{
+            sosAlert()
+        }
         fetchConversations()
     }
 
@@ -93,6 +94,7 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
         }
     }
 
+    @SuppressLint("LogNotTimber")
     override fun onConversationClick(conversation: Conversation) {
          binding.connectionProgress.visibility = View.VISIBLE
         val bAdapter =
@@ -104,7 +106,7 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
         lifecycleScope.launch(Dispatchers.IO) {
             val user = chatDao?.getUserByUUID(conversation.uuid)
             if (user != null) {
-                Timber.tag(TAG).d("Requested: %s", user.address)
+                Log.d(TAG, "Requested:${user.address} ${user.username}")
             }
 
             BluetalkServer.connectUser(d)
@@ -114,6 +116,30 @@ class ConversationListFragment : Fragment(), OnConversationSelectClickListener {
                 proceed()
             }
         }
+    }
+    private fun sosAlert() {
+        val appUUID = UUIDManager.getStoredUUID(requireContext())
+        val builder = AlertDialog.Builder(requireContext()) // Use Activity context
+        builder.setTitle("Send SOS")
+        builder.setMessage("Do you want to send SOS to nearby Bluetalkie Users?")
+        val sharedPreferences = PreferenceManager.getDefaultSharedPreferences(requireContext())
+        val username = sharedPreferences.getString("username", "Not set")
+        builder.setPositiveButton("Yes") { dialog, _ ->
+            lifecycleScope.launch(Dispatchers.IO){
+                BluetalkServer.broadcastSOS("8 $appUUID $username\n")
+            }
+            Toast.makeText(requireContext(),"SOS Sent!",Toast.LENGTH_SHORT).show()
+            dialog.dismiss()
+        }
+
+        builder.setNegativeButton("No") { dialog, _ ->
+            Toast.makeText(requireContext(),"SOS not Sent!",Toast.LENGTH_SHORT).show()
+            // Optionally handle the "No" case. Maybe log the decision or dismiss the alert without action.
+            dialog.dismiss()
+        }
+
+        val dialog: AlertDialog = builder.create()
+        dialog.show()
     }
 
 }

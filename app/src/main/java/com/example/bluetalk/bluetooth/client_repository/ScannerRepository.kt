@@ -9,11 +9,12 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
-import android.util.Log
 import com.example.bluetalk.model.DeviceInfo
 import com.example.bluetalk.spec.SERVICE_UUID
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
@@ -25,7 +26,9 @@ class ScannerRepository(
     private val bluetoothAdapter: BluetoothAdapter,
     private val scope: CoroutineScope
 ) {
-    val devices = MutableSharedFlow<DeviceInfo>()
+    private val _devices = MutableSharedFlow<DeviceInfo>()
+    val devices = _devices.asSharedFlow().distinctUntilChanged()
+
     private var currentScanCallback: ScanCallback? = null
     private val bluetoothLeScanner: BluetoothLeScanner by lazy {
         bluetoothAdapter.bluetoothLeScanner
@@ -41,6 +44,7 @@ class ScannerRepository(
     }
 
     suspend fun searchDevices() {
+        println("Searching Started")
         if (currentScanCallback == null) {
             suspendCancellableCoroutine<Unit> { continuation ->
                 currentScanCallback = object : ScanCallback() {
@@ -60,7 +64,7 @@ class ScannerRepository(
                                     val deviceInfo = DeviceInfo(device, username, userId.toString())
                                     // Emit the deviceInfo to the flow
                                     scope.launch {
-                                        devices.emit(deviceInfo)
+                                        _devices.emit(deviceInfo)
                                     }
                                 }
                             }

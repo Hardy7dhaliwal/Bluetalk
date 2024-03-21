@@ -1,0 +1,74 @@
+@startuml
+package "BlueTalkie App" {
+    class BluetalkServer {
+        - app: Application
+        - appID: UUID
+        - coroutineScope: CoroutineScope
+        - adapter: BluetoothAdapter
+        - advertisementManager: AdvertisingManager
+        - serverManager: ServerManager
+        - database: ChatDatabase
+        - chatDao: ChatDao
+        - clientConnections: Map<String, ClientConnection>
+        - serverConnections: Map<String, ServerConnection>
+        - scanner: ScannerRepository
+        - messages: MutableSharedFlow<Message>
+        - connectionStates: MutableStateFlow<Map<String, ConnectionState>>
+        - foundPath: MutableLiveData<Boolean>
+        - sosRequest: MutableLiveData<String>
+        - paths: Map<Pair<String, String>, Path>
+        - keyStorage: Map<String, CryptoManager>
+    }
+
+    class ClientConnection {
+        - context: Context
+        - scope: CoroutineScope
+        - device: BluetoothDevice
+        - messageCharacteristic: BluetoothGattCharacteristic
+    }
+
+    class ServerConnection {
+            - context: Context
+            - scope: CoroutineScope
+            - device: BluetoothDevice
+            - messageCharacteristic: BluetoothGattCharacteristic
+            +initialize()
+    }
+
+    class ServerManager {
+        - context: Context
+        +initializeServer()
+        +useServer()
+    }
+
+    class CryptoManager {
+        - publicKey: PublicKey
+        - privateKey: PrivateKey
+        - sharedSecret: ByteArray
+        - cipherAES: Cipher
+        - aesKeySpec: SecretKeySpec
+        - iv: ByteArray
+    }
+
+    class User {
+        - username: String
+        - deviceAddress: String
+        - publicKey: String
+    }
+
+    class Message {
+        - id: Int
+        - content: String
+        - timestamp: Long
+        - encrypted: Boolean
+    }
+
+    BluetalkServer --> ClientConnection : "manages >"
+    BluetalkServer --> ServerConnection : "manages >"
+    ServerConnection --> ServerManager : "uses >"
+    BluetalkServer --> CryptoManager : "utilizes >"
+    BluetalkServer --> "Database" : "accesses >"
+    Database -up-> User : "stores >"
+    Database -right-> Message : "stores >"
+}
+@enduml

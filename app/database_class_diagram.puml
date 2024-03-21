@@ -1,0 +1,56 @@
+@startuml
+package "Database Layer" {
+    class ChatDatabase {
+        {static} -INSTANCE: ChatDatabase
+        {static} +getDatabase(context: Context): ChatDatabase
+        +chatDao(): ChatDao
+    }
+
+    interface ChatDao {
+        +insertUser(user: User): void
+        +insertMessage(message: Message): void
+        +getUserByUUID(uuid: String): User
+        +userExists(uuid: String): Boolean
+        +updateSpecificFields(uuid: String, name: String, address: String): void
+        +getConversations(): LiveData<List<Conversation>>
+    }
+}
+
+package "Model Layer" {
+    class User {
+        -uuid: String
+        -username: String
+        -address: String
+        -key: String
+    }
+
+    class Message {
+        -id: String
+        -clientUuid: String
+        -content: String
+        -timestamp: Long
+        -messageType: MessageType
+    }
+
+    class Conversation {
+        -id: Long
+        -userUuid: String
+        -username: String
+        -address: String
+        -lastMessageContent: String
+        -lastMessageTimestamp: Long
+    }
+
+    enum MessageType {
+        SENT
+        RECEIVED
+    }
+}
+
+ChatDatabase .down.> ChatDao : contains
+ChatDao -right-> User : operates on
+ChatDao .down.> Message : operates on
+ChatDao .down.> Conversation : calculates
+
+Message --> User : "clientUuid\n[FK]"
+@enduml

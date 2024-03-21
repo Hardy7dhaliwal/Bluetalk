@@ -1,0 +1,30 @@
+@startuml
+left to right direction
+actor User
+actor "Other User"
+actor "Proxy User"
+
+rectangle BluetalkApp {
+  User --> (Enter Username)
+  User --> (Grant Permissions)
+  User --> (Start BluetalkServer)
+  User --> (View Users)
+  User --> (View Chats)
+  User --> (Connect to User)
+  User --> (Enable Encryption)
+  User --> (Exchange Keys)
+  User --> (Chat)
+  User --> (Proxy Communication)
+  User --> (Find Proxy)
+  User --> (Use Walkie-Talkie)
+  User --> (Send SOS message)
+
+  (Enable Encryption) .down.> (Exchange Keys) : <<includes>>
+  (Chat) .down.> (Proxy Communication) : <<extends>>
+  (Proxy Communication) .down.> (Find Proxy) : <<includes>>
+
+  "Other User" -up-> (Chat)
+  "Proxy User" -up-> (Proxy Communication)
+}
+
+@enduml

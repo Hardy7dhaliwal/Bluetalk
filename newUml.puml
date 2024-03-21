@@ -1,0 +1,23 @@
+@startuml
+class com.example.bluetalk.bluetooth.client_repository.null {
++ void onScanResult(Int,ScanResult?)
++ void onScanFailed(Int)
+}
+
+class com.example.bluetalk.adapter.null {
+-  VIEW_TYPE_SENT
+-  VIEW_TYPE_RECEIVED
+}
+
+class com.example.bluetalk.model.null {
+}
+class com.example.bluetalk.bluetooth.server_repository.null {
++ void onStartSuccess(AdvertiseSettings)
++ void onStartFailure(Int)
+}
+
+
+
+com.example.bluetalk.bluetooth.client_repository.ScanCallback <|-- com.example.bluetalk.bluetooth.client_repository.null
+com.example.bluetalk.bluetooth.server_repository.AdvertiseCallback <|-- com.example.bluetalk.bluetooth.server_repository.null
+@enduml

@@ -54,6 +54,7 @@ class AdvertisingManager(
             .build()
         val user = userName.toByteArray(Charsets.UTF_8)
         Log.d("Advertise: ","User: $userName")
+
         val advertisingData = AdvertiseData.Builder()
             .addServiceUuid(ParcelUuid(SERVICE_UUID))
             .addServiceData(ParcelUuid(SERVICE_UUID),user)

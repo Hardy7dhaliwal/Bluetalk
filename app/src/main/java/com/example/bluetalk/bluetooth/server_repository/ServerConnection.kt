@@ -21,7 +21,6 @@ import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.launchIn
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.launch
 import no.nordicsemi.android.ble.BleManager
 import no.nordicsemi.android.ble.ktx.asResponseFlow
 
@@ -51,10 +50,6 @@ class ServerConnection(
        return true
     }
 
-
-
-
-
     override fun onServerReady(server: BluetoothGattServer) {
         server.getService(SERVICE_UUID)?.run{
             messageCharacteristic = getCharacteristic(MESSAGE_UUID)
@@ -78,15 +73,15 @@ class ServerConnection(
                 it.message?.let{msg->
                     Log.d(TAG, "Received Message: $msg")
                     _messages.emit(msg)
-                    BluetalkServer.storeReceivedMsg(msg, device.address)
+                    BluetalkServer.processReceivedMsg(msg, device.address)
                 }
                 it.audioBytes?.let {audio->
                     Log.d(TAG,"Audio Received")
                     BluetalkServer.publishAudio(audio)
                 }
-                it.key?.let {key ->
-                    Log.d(TAG,"Key Received")
-                    BluetalkServer.postClientPublicKey(key, device.address)
+                it.sosMsg?.let { sosMsg->
+                    Log.d(TAG, "SOS Received")
+                    BluetalkServer.reportSOS(sosMsg)
                 }
             }
             .launchIn(scope)
@@ -94,7 +89,6 @@ class ServerConnection(
 
     override fun onServicesInvalidated() {
         messageCharacteristic = null
-
     }
 
     override fun shouldClearCacheWhenDisconnected(): Boolean {
@@ -107,9 +101,7 @@ class ServerConnection(
                 .retry(time, 300)
                 .useAutoConnect(false)
                 .timeout(0)
-                .done {  }
                 .enqueue()
-
         }catch (e:Exception){
             Log.d(TAG,"Exception: $e")
         }
@@ -120,7 +112,7 @@ class ServerConnection(
         val payload = Payload.newBuilder()
             .setTextMessage(message)
             .build()
-        
+
         val messageBytes = payload.toByteArray()
         return try {
             sendNotification(messageCharacteristic, messageBytes)

@@ -1,0 +1,31 @@
+@startuml
+participant UserA as "User A\n(Sender)"
+participant BluetalkServerA as "BluetalkServer\n(Sender's Server)"
+participant ProxyDevice as "Proxy Device"
+participant BluetalkServerB as "BluetalkServer\n(Proxy's Server)"
+participant UserB as "User B\n(Receiver)"
+
+UserA -> BluetalkServerA: SendMessage(type=0, dstID=UserB)
+alt If Direct Connection to User B is Lost
+    BluetalkServerA -> BluetalkServerA: DetectDisconnection()
+    BluetalkServerA -> BluetalkServerA: BroadcastMessage(type=1, RREQ)
+    loop Until  Proxy Found or Timeout
+        BluetalkServerA -> ProxyDevice: ScanForDevices()
+        ProxyDevice -> BluetalkServerB: ForwardMessage(type=1, RREQ)
+        BluetalkServerB -> UserB: IsDstID(UserB)?
+        alt If Proxy to User B Direct Connection Exists
+            UserB --> BluetalkServerB: Yes
+            BluetalkServerB -> ProxyDevice: SendRREP(srcID=UserA, dstID=UserB)
+            ProxyDevice -> BluetalkServerA: ForwardRREP(srcID=UserA, dstID=UserB)
+            BluetalkServerA -> BluetalkServerA: UpdatePathOnRREP()
+            note over BluetalkServerA, UserB: Path Established Through Proxy
+        else If No Direct Connection
+            ProxyDevice -> BluetalkServerB: Continue Scanning
+        end
+    end loop
+end
+BluetalkServerA -> ProxyDevice: ForwardMessageThroughProxy(type=3, dstID=UserB, content=EncryptedMessage)
+ProxyDevice -> UserB: DeliverMessage(type=3, content=EncryptedMessage)
+UserB -> BluetalkServerB: ProcessReceivedMsg(type=3, content=EncryptedMessage)
+note over UserB: Message Decrypted and Displayed to User B
+@enduml

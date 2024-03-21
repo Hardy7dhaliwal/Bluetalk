@@ -24,7 +24,7 @@ import java.util.Locale
 data class Message(
     @PrimaryKey val id: String, // UUID as a string
     val clientUuid: String, // Links to User's UUID
-    val content: String, // The message content
+    var content: String, // The message content
     val timestamp: Long, // When the message was sent or received
     val messageType: MessageType // Enum for the type of message
 )

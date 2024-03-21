@@ -1,0 +1,104 @@
+@startuml
+
+package "Adapter" {
+}
+
+package "Bluetooth" {
+  package clientRepository{
+    class ClientConnection
+  }
+  package serverRepository{
+    class ServerConnection
+    class ServerManager
+    class AdvertisingManager
+  }
+
+  object BluetalkServer {
+  }
+}
+
+package "Database" {
+  class ChatDao {
+  }
+  class ChatDatabase {
+  }
+}
+
+package "Model" {
+  class User {
+    - String username
+    - String deviceMacAddress
+    - int id
+  }
+  class Message {
+    - int id
+    - String content
+    - timestamp: DateTime
+    - messageType: String
+  }
+  class Conversation {
+    - User user
+    - Message lastMessage
+    - timestamp: DateTime
+  }
+  class DeviceInfo {
+    - String uuid
+    - String address
+    - String username
+  }
+  class UUIDManager {
+    - String appUuid
+  }
+}
+
+package "Security" {
+  class ECDHCryptoManager {
+  }
+}
+
+package "Spec" {
+  class Constants {
+  }
+  class PacketMerger {
+  }
+  class PacketSplitter {
+  }
+}
+
+package "State" {
+  class DeviceScanViewState {
+  }
+  class UserConnectionState {
+  }
+}
+
+package "UI" {
+  class MainActivity {
+  }
+  class ChatFragment {
+  }
+  class ConversationListFragment {
+  }
+  class LoginFragment {
+  }
+  class SettingsFragment {
+  }
+  class UsersScanFragment {
+  }
+  class WalkieTalkie {
+  }
+}
+
+package "ViewModel" {
+  class ScanDeviceViewModel {
+  }
+}
+
+User -right- Conversation
+Message -right- Conversation
+BluetalkServer ..> DeviceInfo : uses >
+User -down- DeviceScanViewState : triggers >
+User -down- UserConnectionState : triggers >
+UUIDManager ..> User : uses >
+
+@enduml

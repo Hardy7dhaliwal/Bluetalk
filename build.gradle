@@ -5,7 +5,6 @@ buildscript {
         google()
         mavenCentral()
 
-
         // Make sure google() is listed here
     }
     dependencies {

@@ -1,0 +1,88 @@
+@startuml
+package "Adapter" {
+    class MessageListAdapter
+    class ChatListAdapter
+    class DeviceListAdapter
+}
+
+package Security{
+    class CryptoManager
+}
+
+package "UI" {
+  class MainActivity {
+  }
+  class ChatFragment {
+  }
+  class ConversationListFragment {
+  }
+  class SettingsFragment {
+  }
+  class UsersScanFragment {
+  }
+  class WalkieTalkie {
+  }
+}
+
+package Database{
+    class Chatbase{}
+    class ChatDao{}
+}
+
+package "Bluetooth" {
+  package clientRepository{
+    class ClientConnection
+  }
+  package serverRepository{
+    class ServerConnection
+    class ServerManager
+    class AdvertisingManager
+  }
+
+  object BluetalkServer {
+  }
+}
+
+package "Model" {
+  class User {
+    - String username
+    - String deviceMacAddress
+    - int id
+  }
+  class Message {
+    - int id
+    - String content
+    - timestamp: Long
+    - messageType: String
+  }
+  class Conversation {
+    - User user
+    - Message lastMessage
+    - timestamp: DateTime
+  }
+  class DeviceInfo {
+    - String uuid
+    - String address
+    - String username
+  }
+  class UUIDManager {
+    +getStoredUUID(context: Context)
+    +serializeUUID()
+    +deserializeUUID(bytes: ByteArray)
+  }
+}
+
+package state{
+    class DeviceScanViewState
+    class UserConnectionState
+}
+
+package ViewModel{
+    class ScanDeviceViewModel
+}
+
+
+UI .right.> Bluetooth : uses >
+BluetalkServer ..> Database : uses >
+
+@enduml

@@ -1,6 +1,6 @@
 package com.example.bluetalk.bluetooth
 
-import ECDHCryptoManager
+import CryptoManager
 import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
@@ -22,19 +22,18 @@ import com.example.bluetalk.database.ChatDao
 import com.example.bluetalk.database.ChatDatabase
 import com.example.bluetalk.model.Message
 import com.example.bluetalk.model.MessageType
-import com.example.bluetalk.model.ProxyPacket
 import com.example.bluetalk.model.UUIDManager
 import com.example.bluetalk.model.User
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
@@ -44,13 +43,16 @@ import no.nordicsemi.android.ble.observer.ServerObserver
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
+import java.util.Base64
 import java.util.UUID
 
 
 data class Path(val node1: String, val node2: String)
 
+
 @SuppressLint("MissingPermission","LogNotTimber","StaticFieldLeak")
 object BluetalkServer {
+    private var isServerStarted = false
     private val TAG = BluetalkServer::class.java.simpleName
     private var app:Application?=null
     private var appID: UUID?=null
@@ -60,22 +62,23 @@ object BluetalkServer {
     private var serverManger: ServerManager?=null
     //for chat messages
     private val _messages = MutableSharedFlow<Message>()
-    val messages = _messages.asSharedFlow()
+
     //for connection state
     private var _connectionStates = MutableStateFlow<Map<String, ConnectionState>>(emptyMap())
     val connectionStates: StateFlow<Map<String, ConnectionState>> = _connectionStates.asStateFlow()
 
-    private val processingBroadcastMsg = mutableListOf<String>()
     //Database
     private var database: ChatDatabase? = null
     private var chatDao: ChatDao? = null
     var clientConnections = mutableMapOf<String,ClientConnection>()
     var serverConnections = mutableMapOf<String, ServerConnection>()
-    private var clients = mutableMapOf<String, ServerConnection>()
     var scanner:ScannerRepository?=null
     private var _foundPath = MutableLiveData<Boolean>()
     val foundPath = _foundPath as LiveData<Boolean>
+    private val _sosRequest  = MutableLiveData<String>()
+    val sosRequest = _sosRequest as LiveData<String>
 
+    private var job:Job?=null
     // Initialize the paths storage
 // The key is a Pair<String, String> representing the SrcID and DstID, and the value is the Path
     private val paths = mutableMapOf<Pair<String, String>, Path>()
@@ -95,19 +98,21 @@ object BluetalkServer {
     }
 
     // function to update a path upon receiving an RREP response
-    fun updatePathOnRREP(srcID: String, dstID: String, node2Address: String) {
+    private fun updatePathOnRREP(srcID: String, dstID: String, node2Address: String) {
         val key = srcID to dstID
         val existingPath = paths[key]
 
         // Only update if the path already exists
-        if (existingPath != null) {
+        if (existingPath != null && existingPath.node1.isNotEmpty()) {
             paths[key] = Path(existingPath.node1, node2Address)
+        }else{
+            paths[key] = Path("",node2Address)
         }
-       Log.d(TAG,"RREP received but did not receive RREQ. Shouldn't happen")
+       Log.d(TAG,"RREP received.")
     }
 
     // Function to retrieve a path
-    fun getPath(srcID: String, dstID: String): Path? {
+    private fun getPath(srcID: String, dstID: String): Path? {
         return paths[srcID to dstID]
     }
 
@@ -116,21 +121,26 @@ object BluetalkServer {
     }
 
 
-    suspend fun storeReceivedMsg(msg: String, address: String){
-
-        insertUser(User(uuid = getSrcUUID(msg), username = getName(msg), address = address))
+    suspend fun processReceivedMsg(msg: String, address: String){
+        val srcID = getSrcUUID(msg)
+        val dstID = getDestUUID(msg)
+        insertUser(User(uuid =srcID, username = getName(msg), address = address))
         val type = getMsgType(msg)
         if(type == 0){ //regular one to one message
-            insertMsg(msg)
+            if(isKeyExchangeMessage(msg)){
+                reportClientPublicKey(address,msg,srcID)
+            }else {
+                insertReceivedMsg(msg)
+            }
         }else if(type==1){ //path find request
             coroutineScope?.launch(Dispatchers.IO) {
                 Log.w(TAG,"Received RREQ")
-                addOrUpdatePathOnRREQ(getSrcUUID(msg), getDestUUID(msg),address)
+                addOrUpdatePathOnRREQ(srcID, dstID,address)
                 broadcastMessage(address,msg)
             }
         }else if(type==2){//path found reply
             Log.w(TAG,"Received RREP")
-            updatePathOnRREP(getSrcUUID(msg), getDestUUID(msg),address)
+            updatePathOnRREP(srcID, dstID,address)
             if(getSrcUUID(msg)== appID.toString()){
                 _foundPath.postValue(true)
             }else {
@@ -138,32 +148,24 @@ object BluetalkServer {
                     forwardMsg(msg, address)
                 }
             }
-        }else{//type 3 //for forwarding msg
+            job?.cancel()
+        }else if (type==3){//for forwarding msg
             Log.w(TAG,"Received Forwarding")
+            updatePathOnRREP(appID.toString(),srcID,address )
             if(getDestUUID(msg) == appID.toString()){
-                insertMsg(msg)
+                if(isKeyExchangeMessage(msg)){
+                    reportClientPublicKey(address,msg,srcID,type)
+                }else{
+                    insertReceivedMsg(msg)
+                }
             }else{
                 forwardMsg(msg,address)
             }
         }
-
-        if(getDestUUID(msg) == appID.toString()) {
-            val uuid = getSrcUUID(msg)
-            val content = msg.substring(msg.indexOf('\n')+1)
-            val m= Message(
-                id = getMsgID(msg),
-                content = content,
-                timestamp = System.currentTimeMillis(),
-                messageType = MessageType.RECEIVED,
-                clientUuid = uuid
-            )
-            _messages.emit(m)
-            insertMessageInDb(m)
-        }
-        Log.d(TAG, "Message: ${msg}")
+        Log.d(TAG, "Message: $msg")
     }
 
-    suspend fun insertUser(user:User){
+    private suspend fun insertUser(user:User){
         if (chatDao?.userExists(user.uuid) == true) {
             chatDao?.updateSpecificFields(user.uuid, user.username, user.address)
         } else {
@@ -171,25 +173,38 @@ object BluetalkServer {
         }
     }
 
-    private fun forwardMsg(msg: String, address: String) {
-        val forwardingTo: String = run {
-            val path = getPath(getSrcUUID(msg), getDestUUID(msg))
-            when (address) {
+    fun forwardMsg(msg: String, address: String) {
+        val srcUUID = getSrcUUID(msg)
+        val destUUID = getDestUUID(msg)
+
+        // Check for direct path or reverse path
+        val path = paths[srcUUID to destUUID] ?: paths[destUUID to srcUUID]
+
+        if (appID.toString() == srcUUID) {
+            Log.w(TAG, "Forwarding Message to ${path?.node2}")
+            path?.node2?.let { sendMessage(it, msg) }
+        } else {
+            val forwardingTo: String = when (address) {
                 path?.node1 -> path.node2 // If current node is node1, forward to node2
-                path?.node2 -> path.node1 // If current node is node2, should it forward to node1 or elsewhere? Adjust according to your logic.
+                path?.node2 -> path.node1 // If current node is node2, forward to node1
                 else -> "" // If current node is neither node1 nor node2, forwarding address is undefined
             }
+
+            if (forwardingTo.isBlank()) {
+                Log.d(TAG, "No path found for forwarding")
+                return
+            }
+            sendMessage(forwardingTo, msg)
         }
-        if(forwardingTo==""){
-            Log.d(TAG,"No path found")
-            return
-        }
-        sendMessage(forwardingTo,msg)
     }
 
-    private fun insertMsg(msg:String){
+
+    private fun insertReceivedMsg(msg:String){
         val uuid = getSrcUUID(msg)
-        val content = msg.substring(msg.indexOf('\n')+1)
+        var content = msg.substring(msg.indexOf('\n')+1)
+        if(isEncrypted(msg)){
+            content = keyStorage[getSrcUUID(msg)]!!.decryptDataWithAES(content)
+        }
         val m= Message(
             id = getMsgID(msg),
             content = content,
@@ -197,10 +212,8 @@ object BluetalkServer {
             messageType = MessageType.RECEIVED,
             clientUuid = uuid
         )
-
         insertMessageInDb(m)
     }
-
 
     private fun insertMessageInDb(message: Message) {
         coroutineScope?.launch(Dispatchers.IO) {
@@ -210,43 +223,40 @@ object BluetalkServer {
 
     // Define a map to track processed devices for each message
     private val processedDevicesForMessages = mutableMapOf<String, MutableSet<String>>()
-    private val proccessedDst = mutableListOf<String>()
+
     suspend fun broadcastMessage(device:String, msg: String) {
+        job?.cancel() // if there is any other job then cancel that job
         val srcUuid = getSrcUUID(msg)
         val dstUuid = getDestUUID(msg)
         if(getPath(srcUuid,dstUuid)?.node2?.isNotEmpty() == true){ // checking if i have path from src to dst
             Log.d(TAG,"Path Exists, No need for Broadcasting")
-            forwardMsg(msg,device)
+            _foundPath.postValue(true)
             return
         }
-
         val msgId = getMsgID(msg)
-
         // Initialize the set for this message ID if it doesn't exist
         val processedDevices = processedDevicesForMessages.getOrPut(msgId) { mutableSetOf() }
-
-        if (!processedDevices.contains(msgId)) {
-
+        if (!processedDevices.contains(msgId)) { //If message with msgID is not proccessed then continue
             Log.d(TAG, "Scanning")
             coroutineScope {
-                val job = launch(Dispatchers.IO) {
+                 job = launch(Dispatchers.IO) {
                     scanner?.devices?.collect { device ->
                         Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id}")
                         //TODO{"Remove srcUUID in final version as this is testing only}
                         if(srcUuid != appID.toString() && device.id == dstUuid){  //found device send rrep
                             processedDevices.add(device.id)
                             scanner?.stopScan()
-                            updatePathOnRREP(srcUuid,dstUuid,device.device.address)
+                            connectUser(device.device) // make connection with requested user
+                            updatePathOnRREP(srcUuid,dstUuid,device.device.address) // saves the path for this dstID user
                             getPath(srcUuid,dstUuid)?.node1?.let {
                                 Log.w(TAG,"Send RREP to $it")
                                 sendMessage(it, makeRREP(msg))
                             }
-                           this.cancel()
+                            this.cancel()
                         }else {
-                            //TODO{"Remove first condition before && in final version, as this is for testing only}
+                            //TODO{"Remove first condition before "&&" in final version, as this is for testing only}
                             if (!(srcUuid == appID.toString() && device.id == dstUuid) && srcUuid != device.id && !processedDevices.contains(
-                                    device.id
-                                )
+                                    device.id)
                             ) {
                                 processedDevices.add(device.id) // Mark as processed for this message
                                 connectUser(device.device)
@@ -256,46 +266,34 @@ object BluetalkServer {
                                         delay(100)
                                     }
                                     Log.d(TAG, "Connected with proxy ${device.username}")
-                                    delay(1500)
-                                    sendMessage(device.device.address, msg)
+                                    delay(1500) // it takes around 2 seconds to make BLE connection
+                                    sendMessage(device.device.address, msg) // send RREQ
                                 }
                             }
                         }
-                        //delay(300) // Delay between processing devices
                     }
                 }
                 scanner?.searchDevices()
-                delay(30000) // Keep scanning for a certain period (30 s)
+                delay(20000) // Keep scanning for a certain period (20 s)
                 scanner?.stopScan()
-                job.cancel() // Cancel the scanning job
+                job!!.cancel() // Cancel the scanning job
             }
         }
     }
 
 
-
     fun sendAudio(device:String, bytes:ByteArray){
-        if (clientConnections[device] == null) {
-            val client = serverConnections[device]
-            coroutineScope?.launch(Dispatchers.IO) {
-                val success = client?.sendAudio(bytes)
-                if (success == true) {
-                    Log.d(TAG,"Audio Sent")
-                } else {
-                    Log.d(TAG, "Audio not Sent")
-                }
-            }
-        } else {
-            val client = clientConnections[device]
-            coroutineScope?.launch(Dispatchers.IO) {
-                val success = client?.sendAudio(bytes)
-                if (success == true) {
-                    Log.d(TAG,"Audio Sent")
-                } else {
-                    Log.d(TAG, "Audio not Sent")
-                }
+
+        val client = clientConnections[device]
+        coroutineScope?.launch(Dispatchers.IO) {
+            val success = client?.sendAudio(bytes)
+            if (success == true) {
+                Log.d(TAG,"Audio Sent")
+            } else {
+                Log.d(TAG, "Audio not Sent")
             }
         }
+
     }
 
     fun startServer(app:Application, coroutineScope: CoroutineScope){
@@ -306,6 +304,7 @@ object BluetalkServer {
         adapter = (app.getSystemService(Context.BLUETOOTH_SERVICE) as BluetoothManager).adapter
         if(!adapter!!.isEnabled){
             Toast.makeText(app.applicationContext,"Bluetooth is Disabled. Cannot Start Server.",Toast.LENGTH_LONG).show()
+            isServerStarted=false
             return
         }
         val sharedPreferences = app.let { PreferenceManager.getDefaultSharedPreferences(it.applicationContext) }
@@ -319,42 +318,34 @@ object BluetalkServer {
         serverManger = ServerManager(app.applicationContext)
         startServerManager()
         scanner = ScannerRepository(app.applicationContext, adapter!!,coroutineScope)
+        isServerStarted=true
     }
 
     fun connectUser(device: BluetoothDevice) {
-        if(clientConnections[device.address]==null ) {  //&& serverConnections[device.address]==null
-            Log.w(TAG, "Using Client")
-            val clientConnection =
-                coroutineScope?.let {
-                    app?.let { it1 -> ClientConnection(it1.applicationContext, it, device) }
-                }
-            if (clientConnection != null) {
-                coroutineScope?.launch(Dispatchers.IO) {
-                    clientConnection.connect()
-                    clientConnections[device.address] = clientConnection
-                }
-            }
-            coroutineScope?.launch(Dispatchers.IO) {
-                clientConnection?.stateAsFlow()?.collect { state ->
-                    val updatedMap = _connectionStates.value.toMutableMap().apply {
-                        this[device.address] = state
+        if(isServerStarted) {
+            if (clientConnections[device.address] == null || clientConnections[device.address]?.isConnected == false) {
+                Log.w(TAG, "Using Client")
+                val clientConnection =
+                    coroutineScope?.let {
+                        app?.let { it1 -> ClientConnection(it1.applicationContext, it, device) }
                     }
-                    // Post the updated map to the StateFlow
-                    _connectionStates.value = updatedMap
+                if (clientConnection != null) {
+                    coroutineScope?.launch(Dispatchers.IO) {
+                        clientConnection.connect()
+                        clientConnections[device.address] = clientConnection
+                    }
+                }
+                coroutineScope?.launch(Dispatchers.IO) {
+                    clientConnection?.stateAsFlow()?.collect { state ->
+                        val updatedMap = _connectionStates.value.toMutableMap().apply {
+                            this[device.address] = state
+                        }
+                        // Post the updated map to the StateFlow
+                        _connectionStates.value = updatedMap
+                    }
                 }
             }
-        }//else{
-//            Log.w(TAG, "Using Server")
-//            coroutineScope?.launch(Dispatchers.IO) {
-//                serverConnections[device.address]?.stateAsFlow()?.collect(){
-//                    val updatedMap = _connectionStates.value.toMutableMap().apply {
-//                        this[device.address] = it
-//                    }
-//                    // Post the updated map to the StateFlow
-//                    _connectionStates.value = updatedMap
-//                }
-//            }
-//        }
+        }
     }
 
 
@@ -362,51 +353,35 @@ object BluetalkServer {
         val srcUUID = getSrcUUID(msg)
         val dstUUID = getDestUUID(msg)
         val msgID = getMsgID(msg)
-        if((clientConnections[device]?.isConnected==true) ) { //or (serverConnections[device]?.isConnected==true)
-            if (clientConnections[device] == null) {
-                val client = serverConnections[device]
-                coroutineScope?.launch(Dispatchers.IO) {
-                    val success = client?.sendMessage(msg)
-                    if (success == true) {
-                        val m = Message(
-                            id = msgID,
-                            clientUuid = dstUUID,
-                            content = msg.split("\n")[1],
-                            timestamp = System.currentTimeMillis(),
-                            messageType = MessageType.SENT
-                        )
-                       if(srcUUID== appID.toString()){ insertMessageInDb(m)}
-                        _messages.emit(m)
-                    } else {
-                        Log.d(TAG, "Message not Sent")
+        val content = msg.split("\n")[1]
+        if((clientConnections[device]?.isConnected==true) ) {
+             val client = clientConnections[device]
+            coroutineScope?.launch(Dispatchers.IO) {
+                val success = client?.sendMessage(msg)
+                if (success == true) {
+                    val m = Message(
+                        id = msgID,
+                        clientUuid = getDestUUID(msg),
+                        content = content,
+                        timestamp = System.currentTimeMillis(),
+                        messageType = MessageType.SENT
+                    )
+                    if(srcUUID== appID.toString() && (getMsgType(msg)==0 || getMsgType(msg)==3) && !isKeyExchangeMessage(msg)){
+                        if(isEncrypted(msg)){
+                            m.content= keyStorage[dstUUID]!!.decryptDataWithAES(content)
+                            insertMessageInDb(m)
+                        }else{
+                            insertMessageInDb(m)
+                        }
+
                     }
-                }
-            } else {
-                val client = clientConnections[device]
-                coroutineScope?.launch(Dispatchers.IO) {
-                    val success = client?.sendMessage(msg)
-                    if (success == true) {
-                        val m = Message(
-                            id = msgID,
-                            clientUuid = getDestUUID(msg),
-                            content = msg.split("\n")[1],
-                            timestamp = System.currentTimeMillis(),
-                            messageType = MessageType.SENT
-                        )
-                        if(srcUUID== appID.toString() && (getMsgType(msg)==0) || getMsgType(msg)==3){ insertMessageInDb(m)}
-                        _messages.emit(m)
-                    } else {
-                        Toast.makeText(app?.applicationContext,"Could Not send the message",Toast.LENGTH_SHORT).show()
-                        Log.d(TAG, "Message not Sent")
-                    }
+                    _messages.emit(m)
+                } else {
+                    Toast.makeText(app?.applicationContext,"Could Not send the message",Toast.LENGTH_SHORT).show()
+                    Log.d(TAG, "Message not Sent")
                 }
             }
-        }//else{
-//            coroutineScope?.launch(Dispatchers.IO) {
-//                broadcastMessage(device,"1 $msg")
-//                paths[srcUUID to dstUUID] = Path(appID.toString(),"")
-//            }
-//        }
+        }
     }
 
 
@@ -470,6 +445,7 @@ object BluetalkServer {
     }
 
     fun disconnectAll(){
+        paths.clear()
         clientConnections.values.forEach{
             it.release()
         }
@@ -478,6 +454,7 @@ object BluetalkServer {
         }
         clientConnections.clear()
         serverConnections.clear()
+        job?.cancel()
     }
 
     fun stopServer(){
@@ -490,6 +467,10 @@ object BluetalkServer {
         clientConnections[deviceAddress]?.release()
     }
 
+    private fun getMsgType(msg: String): Int {
+        val header = msg.split("\n")
+        return header[0].split(" ")[0].toInt()
+    }
 
     private fun getSrcUUID(message:String):String{
         val header = message.split("\n")
@@ -506,22 +487,34 @@ object BluetalkServer {
         return header[0].split(" ")[3]
     }
 
-    private fun getMsgType(msg: String): Int {
-        val header = msg.split("\n")
-        return header[0].split(" ")[0].toInt()
-    }
-
     private fun getName(message:String):String{
         val header = message.split("\n")
         return header[0].split(" ")[4]
     }
+
+    private fun isEncrypted(message:String): Boolean {
+        val header = message.split("\n")
+        return header[0].split(" ")[5].toInt()==1
+    }
+
+    private fun isKeyExchangeMessage(message: String):Boolean{
+        val header = message.split("\n")
+        return header[0].split(" ")[6].toInt() == 1
+    }
+
+
+
 
     fun publishAudio(bytes: ByteArray) {
         Log.d(TAG,"Audio Received")
         app?.applicationContext?.let { playAudioFromByteArray(it,bytes) }
     }
 
+    private val _audioObserver = MutableLiveData<Boolean>()
+    val audioObserver = _audioObserver as LiveData<Boolean>
+
     private fun playAudioFromByteArray(context: Context, audioBytes: ByteArray) {
+        _audioObserver.postValue(true)
         // Create a temporary file to hold the audio data
         val tempFile = File.createTempFile("audio", ".3gp", context.cacheDir).apply {
             deleteOnExit()
@@ -542,6 +535,7 @@ object BluetalkServer {
                 // Release the MediaPlayer once playback is complete
                 setOnCompletionListener {
                     it.release()
+                    _audioObserver.postValue(false)
                 }
             }
         } catch (e: IOException) {
@@ -550,28 +544,75 @@ object BluetalkServer {
         }
     }
 
-    suspend fun postClientPublicKey(key:ByteArray, device:String){
-        keyStorage[device]?.deriveSharedSecret(key)
-
+    private fun reportClientPublicKey(device:String, receivedMsg:String, dstID: String, connectionType: Int=0){
+        Log.w(TAG,"Key Received")
+        if(keyStorage[dstID]==null){
+            exchangeKeys(device, dstID,connectionType)
+        }
+        Log.w(TAG,"Key: ${receivedMsg.split("\n")[1]}")
+        keyStorage[dstID]?.deriveSharedSecret(Base64.getDecoder().decode(receivedMsg.split("\n")[1]))
     }
 
-    private val keyStorage = mutableMapOf<String,ECDHCryptoManager>()
-    fun exchangeKeys(device:String, uuid:String="") {
-        val ecdh = ECDHCryptoManager()
-        val publicKey = ecdh.getPublicKey()
-        keyStorage[device] = ecdh
-        sendKey(device,publicKey)
-    }
+    val keyStorage = mutableMapOf<String,CryptoManager>()
 
-    private fun sendKey(device:String, keyInBytes: ByteArray) {
-        val client = clientConnections[device]
-        coroutineScope?.launch(Dispatchers.IO) {
-            val success = client?.sendKey(keyInBytes)
-            if (success == true) {
-                Log.d(TAG,"KEY Sent")
+    fun exchangeKeys(device:String, dstUuid:String, connectionType:Int=0) {
+        if(keyStorage[dstUuid]==null || keyStorage[dstUuid]?.isInittialized() == false) {
+            Log.w(TAG, "Key Sent")
+            val sharedPreferences =
+                PreferenceManager.getDefaultSharedPreferences(app!!.applicationContext)
+            val username = sharedPreferences.getString("username", "Not set")
+            val header = "$connectionType $appID $dstUuid ${UUID.randomUUID()} $username 0 1"
+            val ecdh = CryptoManager()
+            val publicKey = ecdh.getPublicKey()
+            keyStorage[dstUuid] = ecdh
+            Log.w(TAG, "Key: ${Base64.getEncoder().encodeToString(publicKey)}")
+            if (connectionType == 0) {
+                sendMessage(device, "$header\n${Base64.getEncoder().encodeToString(publicKey)}")
             } else {
-                Log.d(TAG, "KEY not Sent")
+                forwardMsg("$header\n${Base64.getEncoder().encodeToString(publicKey)}", device)
             }
+        }
+    }
+
+    private val receivedSosRequests = mutableListOf<String>()
+    fun reportSOS(sosMsg: String) {
+        val sosUuid = getSrcUUID(sosMsg)
+        if(!receivedSosRequests.contains(sosUuid)){
+            _sosRequest.postValue(sosMsg)
+            receivedSosRequests.add(sosUuid)
+        }
+    }
+
+    suspend fun broadcastSOS(msg:String) {
+        receivedSosRequests.add(getSrcUUID(msg))
+        job?.cancel()
+        // Initialize the set for this message ID if it doesn't exist
+        val processedDevices = mutableListOf<String>()
+        Log.d(TAG, "Scanning")
+        coroutineScope {
+            job = launch(Dispatchers.IO) {
+                scanner?.devices?.collect { device ->
+                    Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id} : ${processedDevices.contains(device.id)}")
+                    if (!processedDevices.contains(device.id)) {
+                        processedDevices.add(device.id) // Mark as processed for this message
+                        connectUser(device.device)
+                        launch(Dispatchers.IO) {
+                            while (clientConnections[device.device.address]?.isReady != true) {
+                                //Log.w(TAG,"State: ${clientConnections[device.device.address]?.state}")
+                                delay(100)
+                            }
+                            Log.d(TAG, "Connected with proxy ${device.username}")
+                            delay(1500)
+                            clientConnections[device.device.address]?.sendSOS(msg)
+                        }
+                    }
+                }
+            }
+            scanner?.searchDevices()
+            delay(20000) // Keep scanning for a certain period (20 s)
+            scanner?.stopScan()
+            job!!.cancel() // Cancel the scanning job
+            //disconnectAll() //after sos sending is finished then disconnect from all to save BLE stack memory
         }
     }
 }

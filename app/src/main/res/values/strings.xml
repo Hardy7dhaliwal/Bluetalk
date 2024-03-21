@@ -34,4 +34,8 @@
     <string name="create_username">Create Username</string>
     <string name="create_account">Create Account</string>
     <string name="username_hint">Username can also be updated in the Settings.</string>
+    <string name="broadcast_sos">Broadcast SOS</string>
+    <string name="loading_chat">Loading Chat...</string>
+    <string name="chat_app">Chat App</string>
+    <string name="no_chats_yet_start_a_conversation">No chats yet. Start a conversation!</string>
 </resources>

@@ -76,36 +76,26 @@ dependencies {
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.room:room-common:2.6.1'
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3'
+    implementation 'androidx.test:rules:1.6.0-alpha03'
     ksp "androidx.room:room-compiler:2.6.1"
     implementation 'androidx.room:room-ktx:2.6.1'
-    testImplementation 'junit:junit:4.13.2'
-    androidTestImplementation 'androidx.test.ext:junit:1.1.5'
-    androidTestImplementation 'androidx.test.espresso:espresso-core:3.5.1'
     implementation 'androidx.preference:preference-ktx:1.2.1'
     implementation 'androidx.cardview:cardview:1.0.0'
-
-    implementation 'com.google.dagger:dagger:2.48'
-    kapt 'com.google.dagger:dagger-compiler:2.48'
-
-
-    implementation 'com.google.dagger:dagger-android:2.48'
-    implementation 'com.google.dagger:dagger-android-support:2.48'
-
-    kapt 'com.google.dagger:dagger-android-processor:2.48'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
     implementation 'org.dbtools:dbtools-room:8.1.0'
-    implementation 'no.nordicsemi.android.kotlin.ble:scanner:1.0.14'
-    implementation 'no.nordicsemi.android.support.v18:scanner:1.6.0'
-    implementation 'no.nordicsemi.android.kotlin.ble:server:1.0.14'
-    implementation 'no.nordicsemi.android.kotlin.ble:advertiser:1.0.14'
-    implementation 'no.nordicsemi.android.kotlin.ble:client:1.0.14'
     implementation 'no.nordicsemi.android:ble-livedata:2.7.3'
     implementation 'no.nordicsemi.android:ble-ktx:2.7.3'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
     implementation 'com.madgag.spongycastle:prov:1.58.0.0'
 
-
+    // testing
+    testImplementation "androidx.arch.core:core-testing:2.2.0"
+    testImplementation "androidx.room:room-testing:2.6.1"
+    androidTestImplementation "androidx.fragment:fragment-testing:1.6.2"
+    testImplementation 'junit:junit:4.13.2'
+    androidTestImplementation 'androidx.test.ext:junit:1.2.0-alpha03'
+    androidTestImplementation 'androidx.test.espresso:espresso-core:3.6.0-alpha03'
 
 }
 protobuf {

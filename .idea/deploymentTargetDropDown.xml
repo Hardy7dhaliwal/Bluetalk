@@ -2,27 +2,18 @@
 <project version="4">
   <component name="deploymentTargetDropDown">
     <value>
+      <entry key="FirstLoginNoChatsTest">
+        <State />
+      </entry>
+      <entry key="Login_screen_test">
+        <State />
+      </entry>
+      <entry key="Tests in 'com.example.bluetalk.ui'">
+        <State />
+      </entry>
       <entry key="app">
         <State>
-          <runningDeviceTargetsSelectedWithDialog>
-            <Target>
-              <type value="RUNNING_DEVICE_TARGET" />
-              <deviceKey>
-                <Key>
-                  <type value="SERIAL_NUMBER" />
-                  <value value="2B161JEGR09681" />
-                </Key>
-              </deviceKey>
-            </Target>
-            <Target>
-              <type value="RUNNING_DEVICE_TARGET" />
-              <deviceKey>
-                <Key>
-                  <type value="SERIAL_NUMBER" />
-                  <value value="9f91cfa1" />
-                </Key>
-              </deviceKey>
-            </Target>
+          <runningDeviceTargetSelectedWithDropDown>
             <Target>
               <type value="RUNNING_DEVICE_TARGET" />
               <deviceKey>
@@ -32,8 +23,15 @@
                 </Key>
               </deviceKey>
             </Target>
-          </runningDeviceTargetsSelectedWithDialog>
+          </runningDeviceTargetSelectedWithDropDown>
+          <timeTargetWasSelectedWithDropDown value="2024-03-20T19:30:59.415472Z" />
         </State>
+      </entry>
+      <entry key="changeUserName">
+        <State />
+      </entry>
+      <entry key="navigationTest_CHatsToScan()">
+        <State />
       </entry>
     </value>
   </component>

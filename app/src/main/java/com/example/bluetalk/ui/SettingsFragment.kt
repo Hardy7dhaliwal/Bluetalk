@@ -39,6 +39,7 @@ class SettingsFragment : PreferenceFragmentCompat(), SharedPreferences.OnSharedP
 
     override fun onDestroy() {
         super.onDestroy()
+        //TODO{Remove this line}
         BluetalkServer.disconnectAll()
     }
 }
