@@ -117,15 +117,18 @@ object BluetalkServer {
     }
 
     private fun makeRREP(msg:String):String{
-        return "2 ${getSrcUUID(msg)} ${getDestUUID(msg)} ${getMsgID(msg)} ${getName(msg)}\n"
+        return "2 ${getSrcUUID(msg)} ${getDestUUID(msg)} ${getMsgID(msg)} ${getName(msg)} 0 0\n"
     }
 
 
     suspend fun processReceivedMsg(msg: String, address: String){
         val srcID = getSrcUUID(msg)
         val dstID = getDestUUID(msg)
-        insertUser(User(uuid =srcID, username = getName(msg), address = address))
         val type = getMsgType(msg)
+        if(type!=2) {
+            insertUser(User(uuid = srcID, username = getName(msg), address=address))
+        }
+
         if(type == 0){ //regular one to one message
             if(isKeyExchangeMessage(msg)){
                 reportClientPublicKey(address,msg,srcID)
@@ -142,7 +145,7 @@ object BluetalkServer {
         }else if(type==2){//path found reply
             Log.w(TAG,"Received RREP")
             updatePathOnRREP(srcID, dstID,address)
-            if(getSrcUUID(msg)== appID.toString()){
+            if(srcID== appID.toString()){
                 _foundPath.postValue(true)
             }else {
                 coroutineScope?.launch(Dispatchers.IO) {
@@ -153,7 +156,7 @@ object BluetalkServer {
         }else if (type==3){//for forwarding msg
             Log.w(TAG,"Received Forwarding")
             updatePathOnRREP(appID.toString(),srcID,address )
-            if(getDestUUID(msg) == appID.toString()){
+            if(dstID == appID.toString()){
                 if(isKeyExchangeMessage(msg)){
                     reportClientPublicKey(address,msg,srcID,type)
                 }else{
@@ -169,6 +172,7 @@ object BluetalkServer {
     }
 
     private suspend fun insertUser(user:User){
+        Log.w(TAG,"${user.uuid} ${user.username} ${user.address}")
         if (chatDao?.userExists(user.uuid) == true) {
             chatDao?.updateSpecificFields(user.uuid, user.username, user.address)
         } else {
@@ -370,6 +374,7 @@ object BluetalkServer {
                         messageType = MessageType.SENT
                     )
                     if(srcUUID== appID.toString() && (getMsgType(msg)==0 || getMsgType(msg)==3) && !isKeyExchangeMessage(msg)){
+                        Log.w(TAG,"Received: $msg")
                         if(isEncrypted(msg)){
                             m.content= keyStorage[dstUUID]!!.decryptDataWithAES(content)
                             insertMessageInDb(m)

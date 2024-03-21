@@ -131,23 +131,6 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
      * Custom ScanCallback object - adds found devices to list on success, displays error on failure.
      */
     private inner class DeviceScanCallback : ScanCallback() {
-        override fun onBatchScanResults(results: List<ScanResult>) {
-            super.onBatchScanResults(results)
-            for (item in results) {
-                val userId = item.scanRecord?.serviceUuids?.let { getUserID(it) }
-                val serviceData = item.scanRecord?.getServiceData(ParcelUuid(SERVICE_UUID))
-                var username = ""
-                serviceData?.let { data ->
-                    username = String(data, Charsets.UTF_8)
-                }
-                item.device?.let { device ->
-                    val deviceInfo = DeviceInfo(device, username,userId.toString())
-                    scanResults[device.address] = deviceInfo
-                }
-            }
-            _viewState.value = DeviceScanViewState.ScanResults(scanResults)
-        }
-
         override fun onScanResult(callbackType: Int, result: ScanResult) {
             super.onScanResult(callbackType, result)
             if(result.scanRecord?.getServiceData(ParcelUuid(SERVICE_UUID))!=null){

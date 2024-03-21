@@ -66,9 +66,9 @@ class ChatFragment: Fragment() {
         Log.d(TAG,"Found Proxy Hurray!!!")
         lifecycleScope.launch(Dispatchers.IO){
             delay(1000)
-            showEncryptionDialog(3)
-            delay(500)
             lifecycleScope.launch(Dispatchers.Main){
+                showEncryptionDialog(3)
+                delay(500)
                 chatOneToProxy(args.deviceAddress)
             }
         }
@@ -107,6 +107,7 @@ class ChatFragment: Fragment() {
         val d = bAdapter.getRemoteDevice(args.deviceAddress)
         BluetalkServer.foundPath.observe(viewLifecycleOwner,proxyObserver)
         loadMessagesFromDatabase(args.id)
+//        showProxyDialog()
         viewLifecycleOwner.lifecycleScope.launch {
             // Using viewLifecycleOwner.lifecycleScope to tie the collection to the Fragment's view lifecycle
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -281,7 +282,7 @@ class ChatFragment: Fragment() {
         val builder = AlertDialog.Builder(requireContext())
         builder.setTitle("Enable Encryption")
         builder.setMessage("Do you want to proceed with end-to-end encryption chat?")
-        builder.setPositiveButton("Yes") { dialog, _ ->
+        builder.setPositiveButton("Yes") { _, _ ->
             lifecycleScope.launch(Dispatchers.IO) {
                 BluetalkServer.exchangeKeys(args.deviceAddress, args.id, connectionType)
                 enableEncryption = true

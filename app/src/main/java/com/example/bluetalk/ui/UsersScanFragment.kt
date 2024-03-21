@@ -136,12 +136,9 @@ class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
             lifecycleScope.launch(Dispatchers.IO) {
                 val user =
                     requestedUser?.device?.address?.let {
-                        User(it,requestedUser!!.username, requestedUser!!.id)
+                        User(requestedUser!!.id,requestedUser!!.username,it )
                     }
                 Log.d(TAG, "onDeviceClick: Inserting User $user.uuid")
-                if (user != null) {
-                    chatDao?.insertUser(user)
-                }
             }
             binding.connectionProgress.visibility = View.GONE
             val action =
