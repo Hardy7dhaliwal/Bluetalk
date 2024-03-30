@@ -9,16 +9,17 @@ import android.bluetooth.le.ScanResult
 import android.bluetooth.le.ScanSettings
 import android.content.Context
 import android.os.ParcelUuid
+import android.widget.Toast
 import com.example.bluetalk.model.DeviceInfo
 import com.example.bluetalk.spec.SERVICE_UUID
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.UUID
-import kotlin.coroutines.resumeWithException
 
 @SuppressLint("MissingPermission")
 class ScannerRepository(
@@ -72,7 +73,9 @@ class ScannerRepository(
                     }
 
                     override fun onScanFailed(errorCode: Int) {
-                        continuation.resumeWithException(ScanningException(errorCode))
+                        scope.launch(Dispatchers.Main){
+                            Toast.makeText(context,"Failed to scan. Try Again!",Toast.LENGTH_LONG).show()
+                        }
                     }
                 }
                 continuation.invokeOnCancellation {
@@ -82,7 +85,7 @@ class ScannerRepository(
 
                 val scanSettings = ScanSettings.Builder()
                     .setReportDelay(0)
-                    .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+                    .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
                     .build()
 
                 val scanFilters = listOf(

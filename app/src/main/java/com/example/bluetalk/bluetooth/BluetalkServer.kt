@@ -1,6 +1,5 @@
 package com.example.bluetalk.bluetooth
 
-import CryptoManager
 import android.annotation.SuppressLint
 import android.app.Application
 import android.bluetooth.BluetoothAdapter
@@ -24,6 +23,7 @@ import com.example.bluetalk.model.Message
 import com.example.bluetalk.model.MessageType
 import com.example.bluetalk.model.UUIDManager
 import com.example.bluetalk.model.User
+import com.example.bluetalk.security.CryptoManager
 import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +37,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import no.nordicsemi.android.ble.ktx.state
 import no.nordicsemi.android.ble.ktx.state.ConnectionState
 import no.nordicsemi.android.ble.ktx.stateAsFlow
 import no.nordicsemi.android.ble.observer.ServerObserver
@@ -45,6 +47,7 @@ import java.io.FileOutputStream
 import java.io.IOException
 import java.util.Base64
 import java.util.UUID
+import java.util.concurrent.TimeoutException
 
 
 data class Path(val node1: String, val node2: String)
@@ -77,7 +80,7 @@ object BluetalkServer {
     val foundPath = _foundPath as LiveData<Boolean>
     private val _sosRequest  = MutableLiveData<String>()
     val sosRequest = _sosRequest as LiveData<String>
-
+    var keyErrorDB = mutableListOf<String>()
     private var job:Job?=null
     // Initialize the paths storage
 // The key is a Pair<String, String> representing the SrcID and DstID, and the value is the Path
@@ -89,7 +92,7 @@ object BluetalkServer {
         val existingPath = paths[key]
 
         // If there's already a path, update it; otherwise, create a new one
-        if (existingPath != null) {
+        if (existingPath != null && existingPath.node2.isNotEmpty()) {
             Log.d(TAG,"Same RREQ received so Ignore it")
             //paths[key] = Path(node1Address, existingPath.node2)
         } else {
@@ -125,11 +128,9 @@ object BluetalkServer {
         val srcID = getSrcUUID(msg)
         val dstID = getDestUUID(msg)
         val type = getMsgType(msg)
-        if(type!=2) {
-            insertUser(User(uuid = srcID, username = getName(msg), address=address))
-        }
 
         if(type == 0){ //regular one to one message
+            insertUser(User(uuid = srcID, username = getName(msg), address=address))
             if(isKeyExchangeMessage(msg)){
                 reportClientPublicKey(address,msg,srcID)
             }else {
@@ -211,6 +212,15 @@ object BluetalkServer {
         var content = msg.substring(msg.indexOf('\n')+1)
         if(isEncrypted(msg)){
             content = keyStorage[getSrcUUID(msg)]!!.decryptDataWithAES(content)
+        }else if (isKeyError(msg)){
+            if(!keyErrorDB.contains(uuid)) {
+                keyErrorDB.add(uuid)
+            }
+            keyStorage[uuid]=null
+            coroutineScope?.launch(Dispatchers.Main){
+                Toast.makeText(app?.applicationContext,"Key Exchange Failed.", Toast.LENGTH_LONG).show()
+            }
+
         }
         val m= Message(
             id = getMsgID(msg),
@@ -247,38 +257,60 @@ object BluetalkServer {
             Log.d(TAG, "Scanning")
             coroutineScope {
                  job = launch(Dispatchers.IO) {
-                    scanner?.devices?.collect { device ->
-                        Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id}")
-                        //TODO{"Remove srcUUID in final version as this is testing only}
-                        if(srcUuid != appID.toString() && device.id == dstUuid){  //found device send rrep
-                            processedDevices.add(device.id)
-                            scanner?.stopScan()
-                            connectUser(device.device) // make connection with requested user
-                            updatePathOnRREP(srcUuid,dstUuid,device.device.address) // saves the path for this dstID user
-                            getPath(srcUuid,dstUuid)?.node1?.let {
-                                Log.w(TAG,"Send RREP to $it")
-                                sendMessage(it, makeRREP(msg))
-                            }
-                            this.cancel()
-                        }else {
-                            //TODO{"Remove first condition before "&&" in final version, as this is for testing only}
-                            if (!(srcUuid == appID.toString() && device.id == dstUuid) && srcUuid != device.id && !processedDevices.contains(
-                                    device.id)
-                            ) {
-                                processedDevices.add(device.id) // Mark as processed for this message
-                                connectUser(device.device)
-                                launch(Dispatchers.IO) {
-                                    while (clientConnections[device.device.address]?.isReady != true) {// && serverConnections[device.device.address]?.isReady != true
-                                        //Log.w(TAG,"State: ${clientConnections[device.device.address]?.state}")
-                                        delay(100)
-                                    }
-                                    Log.d(TAG, "Connected with proxy ${device.username}")
-                                    delay(1500) // it takes around 2 seconds to make BLE connection
-                                    sendMessage(device.device.address, msg) // send RREQ
-                                }
-                            }
-                        }
-                    }
+                     try {
+                         withTimeout(20000L) {
+                             scanner?.devices?.collect { device ->
+                                 Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id}")
+                                 //TODO{"Remove srcUUID in final version as this is testing only}
+                                 if (srcUuid != appID.toString() && device.id == dstUuid) {  //found device send rrep
+                                     processedDevices.add(device.id)
+                                     scanner?.stopScan()
+                                     connectUser(device.device) // make connection with requested user
+                                     launch(Dispatchers.IO) {
+                                         while (clientConnections[device.device.address]?.isReady != true) {// && serverConnections[device.device.address]?.isReady != true
+                                             Log.w(
+                                                 TAG,
+                                                 "${device.username} State: ${clientConnections[device.device.address]?.state}"
+                                             )
+                                             delay(200)
+                                         }
+                                         updatePathOnRREP(
+                                             srcUuid,
+                                             dstUuid,
+                                             device.device.address
+                                         ) // saves the path for this dstID user
+                                         getPath(srcUuid, dstUuid)?.node1?.let {
+                                             Log.w(TAG, "Send RREP to $it")
+                                             sendMessage(it, makeRREP(msg))
+                                         }
+                                     }
+                                     this.cancel()
+                                 } else {
+                                     //TODO{"Remove first condition before "&&" in final version, as this is for testing only}
+                                     if (!(srcUuid == appID.toString() && device.id == dstUuid) && srcUuid != device.id && !processedDevices.contains(
+                                             device.id
+                                         )
+                                     ) {
+                                         processedDevices.add(device.id) // Mark as processed for this message
+                                         connectUser(device.device)
+                                         launch(Dispatchers.IO) {
+                                             while (clientConnections[device.device.address]?.isReady != true) {// && serverConnections[device.device.address]?.isReady != true
+                                                 //Log.w(TAG,"State: ${clientConnections[device.device.address]?.state}")
+                                                 delay(100)
+                                             }
+                                             Log.d(TAG, "Connected with proxy ${device.username}")
+                                             delay(1500) // it takes around 2 seconds to make BLE connection
+                                             sendMessage(device.device.address, msg) // send RREQ
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+                     }catch (e:TimeoutException){
+                         Log.d(TAG,"Timeout Occured.")
+                     }finally {
+                         scanner?.stopScan()
+                     }
                 }
                 scanner?.searchDevices()
                 delay(20000) // Keep scanning for a certain period (20 s)
@@ -504,6 +536,10 @@ object BluetalkServer {
         val header = message.split("\n")
         return header[0].split(" ")[5].toInt()==1
     }
+    private fun isKeyError(message:String): Boolean {
+        val header = message.split("\n")
+        return header[0].split(" ")[5].toInt()==2
+    }
 
     private fun isKeyExchangeMessage(message: String):Boolean{
         val header = message.split("\n")
@@ -560,10 +596,10 @@ object BluetalkServer {
         keyStorage[dstID]?.deriveSharedSecret(Base64.getDecoder().decode(receivedMsg.split("\n")[1]))
     }
 
-    val keyStorage = mutableMapOf<String,CryptoManager>()
+    val keyStorage = mutableMapOf<String, CryptoManager?>()
 
     fun exchangeKeys(device:String, dstUuid:String, connectionType:Int=0) {
-        if(keyStorage[dstUuid]==null || keyStorage[dstUuid]?.isInittialized() == false) {
+        if(keyStorage[dstUuid]==null || keyStorage[dstUuid]?.isInitialized() == false) {
             val sharedPreferences =
                 PreferenceManager.getDefaultSharedPreferences(app!!.applicationContext)
             val username = sharedPreferences.getString("username", "Not set")
@@ -597,21 +633,34 @@ object BluetalkServer {
         Log.d(TAG, "Scanning")
         coroutineScope {
             job = launch(Dispatchers.IO) {
-                scanner?.devices?.collect { device ->
-                    Log.w(TAG, "Discovered: ${device.username} with ID: ${device.id} : ${processedDevices.contains(device.id)}")
-                    if (!processedDevices.contains(device.id)) {
-                        processedDevices.add(device.id) // Mark as processed for this message
-                        connectUser(device.device)
-                        launch(Dispatchers.IO) {
-                            while (clientConnections[device.device.address]?.isReady != true) {
-                                //Log.w(TAG,"State: ${clientConnections[device.device.address]?.state}")
-                                delay(100)
+                try {
+                    withTimeout(20000L) {
+                        scanner?.devices?.collect { device ->
+                            Log.w(
+                                TAG,
+                                "Discovered: ${device.username} with ID: ${device.id} : ${
+                                    processedDevices.contains(device.id)
+                                }"
+                            )
+                            if (!processedDevices.contains(device.id)) {
+                                processedDevices.add(device.id) // Mark as processed for this message
+                                connectUser(device.device)
+                                launch(Dispatchers.IO) {
+                                    while (clientConnections[device.device.address]?.isReady != true) {
+                                        //Log.w(TAG,"State: ${clientConnections[device.device.address]?.state}")
+                                        delay(100)
+                                    }
+                                    Log.d(TAG, "Connected with proxy ${device.username}")
+                                    delay(1500)
+                                    clientConnections[device.device.address]?.sendSOS(msg)
+                                }
                             }
-                            Log.d(TAG, "Connected with proxy ${device.username}")
-                            delay(1500)
-                            clientConnections[device.device.address]?.sendSOS(msg)
                         }
                     }
+                }catch (e: TimeoutException){
+                    Log.d(TAG, "Timeout occurred")
+                }finally {
+                    scanner?.stopScan()
                 }
             }
             scanner?.searchDevices()

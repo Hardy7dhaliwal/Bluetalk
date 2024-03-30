@@ -166,6 +166,7 @@ class UsersScanFragment : Fragment(), OnDeviceSelectClickListener {
 
     private fun showError(message: String){
         Log.d(TAG, "showError")
+        Toast.makeText(requireContext(),"Scan Failed. Try Again!",Toast.LENGTH_LONG).show()
         Log.d(TAG, message)
     }
 

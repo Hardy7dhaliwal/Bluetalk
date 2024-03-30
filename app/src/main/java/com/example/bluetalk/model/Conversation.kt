@@ -14,7 +14,6 @@ data class Conversation(
     val username: String,
     val content: String, // last message content
     val timestamp: Long, //last message timestamp
-    // Add other fields from the Message and User entities as needed
 ){
     fun getTime() : String{
         val date = Date(timestamp)

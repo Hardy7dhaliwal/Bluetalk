@@ -121,7 +121,7 @@ class ScanDeviceViewModel (app: Application):AndroidViewModel(app){
      */
     private fun buildScanSettings(): ScanSettings {
         return ScanSettings.Builder()
-            .setScanMode(ScanSettings.SCAN_MODE_LOW_POWER)
+            .setScanMode(ScanSettings.SCAN_MODE_LOW_LATENCY)
             .setMatchMode(ScanSettings.MATCH_MODE_AGGRESSIVE)
             .setReportDelay(0L)
             .build()

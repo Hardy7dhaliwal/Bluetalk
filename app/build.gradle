@@ -85,7 +85,7 @@ dependencies {
     implementation 'com.squareup.okhttp3:logging-interceptor:4.11.0'
     implementation 'org.dbtools:dbtools-room:8.1.0'
     implementation 'no.nordicsemi.android:ble-livedata:2.7.3'
-    implementation 'no.nordicsemi.android:ble-ktx:2.7.3'
+    implementation 'no.nordicsemi.android:ble-ktx:2.7.4'
     implementation 'com.madgag.spongycastle:core:1.58.0.0'
     implementation 'com.madgag.spongycastle:prov:1.58.0.0'
 

@@ -98,7 +98,7 @@ class MainActivity : AppCompatActivity() {
             navHostFragment?.view?.visibility = View.VISIBLE
             bottomNavigationView.visibility=View.VISIBLE
             binding.loginContainer.visibility=View.GONE
-            val name = binding.editTextUsername.text.toString()
+            val name = binding.editTextUsername.text.toString().trim()
             with(sharedPreferences.edit()) {
                 putString("username", name)
                 apply()
@@ -212,7 +212,7 @@ class MainActivity : AppCompatActivity() {
             .setPositiveButton(
                 "Open Settings"
             ) { _: DialogInterface?, _: Int -> openAppSettings() }
-            .setNegativeButton("Cancel") { dialog: DialogInterface, id: Int -> dialog.cancel() }
+            .setNegativeButton("Cancel") { dialog: DialogInterface, _: Int -> dialog.cancel() }
             .create()
             .show()
     }
@@ -248,7 +248,6 @@ class MainActivity : AppCompatActivity() {
         }
 
         builder.setNegativeButton("No") { dialog, _ ->
-            // Optionally handle the "No" case. Maybe log the decision or dismiss the alert without action.
             dialog.dismiss()
         }
 

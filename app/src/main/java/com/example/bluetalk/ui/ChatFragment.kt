@@ -37,6 +37,7 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 import no.nordicsemi.android.ble.ktx.state.ConnectionState
+import java.security.InvalidKeyException
 import java.util.UUID
 
 private const val TAG = "ChatFragment"
@@ -55,7 +56,7 @@ class ChatFragment: Fragment() {
 
     private lateinit var messageListAdapter: MessageListAdapter
     private lateinit var appUUID: UUID
-
+    private var isFound = false
 
     private val inputMethodManager by lazy {
         requireContext().getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
@@ -63,12 +64,13 @@ class ChatFragment: Fragment() {
 
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     private val proxyObserver = Observer<Boolean>{
+        isFound=true
         Log.d(TAG,"Found Proxy Hurray!!!")
         lifecycleScope.launch(Dispatchers.IO){
             delay(1000)
             lifecycleScope.launch(Dispatchers.Main){
+                binding.connectionProgress.visibility=View.GONE
                 showEncryptionDialog(3)
-                delay(500)
                 chatOneToProxy(args.deviceAddress)
             }
         }
@@ -107,7 +109,9 @@ class ChatFragment: Fragment() {
         val d = bAdapter.getRemoteDevice(args.deviceAddress)
         BluetalkServer.foundPath.observe(viewLifecycleOwner,proxyObserver)
         loadMessagesFromDatabase(args.id)
-//        showProxyDialog()
+
+        //showProxyDialog() //For Testing Proxy
+
         viewLifecycleOwner.lifecycleScope.launch {
             // Using viewLifecycleOwner.lifecycleScope to tie the collection to the Fragment's view lifecycle
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -180,8 +184,19 @@ class ChatFragment: Fragment() {
                 var header = ""
                 if(!waitingForKeyExchange){
                     if(enableEncryption){
-                        header = "0 $appUUID ${args.id} ${UUID.randomUUID()} $username 1 0"
-                        message=BluetalkServer.keyStorage[args.id]!!.encryptDataWithAES(message)
+                        try{
+                            if(!BluetalkServer.keyErrorDB.contains(args.id)) {
+                                header = "0 $appUUID ${args.id} ${UUID.randomUUID()} $username 1 0"
+                                message =
+                                    BluetalkServer.keyStorage[args.id]!!.encryptDataWithAES(message)
+                            }else{
+                                header = "0 $appUUID ${args.id} ${UUID.randomUUID()} $username 2 0"
+                            }
+                        }catch (e: InvalidKeyException){
+                            BluetalkServer.keyStorage[args.id]=null
+                            Log.e(TAG,"Invalid Key: ${BluetalkServer.keyStorage[args.id]?.isInitialized()}")
+                            header = "0 $appUUID ${args.id} ${UUID.randomUUID()} $username 2 0"
+                        }
                     }else{
                         header = "0 $appUUID ${args.id} ${UUID.randomUUID()} $username 0 0"
                     }
@@ -207,8 +222,13 @@ class ChatFragment: Fragment() {
                 var header = ""
                 if(!waitingForKeyExchange){
                     if(enableEncryption){
-                        header = "3 $appUUID ${args.id} ${UUID.randomUUID()} $username 1 0"
-                        message=BluetalkServer.keyStorage[args.id]!!.encryptDataWithAES(message)
+                        if(!BluetalkServer.keyErrorDB.contains(args.id)) {
+                            header = "3 $appUUID ${args.id} ${UUID.randomUUID()} $username 1 0"
+                            message =
+                                BluetalkServer.keyStorage[args.id]!!.encryptDataWithAES(message)
+                        }else{
+                            header = "3 $appUUID ${args.id} ${UUID.randomUUID()} $username 0 0"
+                        }
                     }else{
                         header = "3 $appUUID ${args.id} ${UUID.randomUUID()} $username 0 0"
                     }
@@ -223,7 +243,7 @@ class ChatFragment: Fragment() {
     }
 
     private fun showDisconnected(d: BluetoothDevice) {
-        binding.connectionProgress.visibility=View.GONE
+
         binding.buttonSend.setOnClickListener{
             Toast.makeText(requireContext(),"You are not Connected!!",Toast.LENGTH_SHORT).show()
             binding.inputMessage.setText("")
@@ -238,7 +258,7 @@ class ChatFragment: Fragment() {
             }
         }else {
             lifecycleScope.launch {
-                delay(10000)
+                delay(7000)
                 if(!isConnected) {
                     if (BluetalkServer.clientConnections[d.address] != null) {
                         launch(Dispatchers.Main) {
@@ -264,10 +284,26 @@ class ChatFragment: Fragment() {
             lifecycleScope.launch(Dispatchers.IO) {
                 BluetalkServer.broadcastMessage(args.deviceAddress,"$header\n ")
             }
+
+            lifecycleScope.launch{
+                delay(20000)
+                if(!isFound) {
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        binding.connectionProgress.visibility = View.GONE
+                        Toast.makeText(
+                            requireContext(),
+                            "[!] Proxy Could not be found.",
+                            Toast.LENGTH_LONG
+                        ).show()
+                    }
+                }
+            }
+
         }
 
         builder.setNegativeButton("No") { dialog,_ ->
             dialog.dismiss()
+            binding.connectionProgress.visibility=View.GONE
             // Handle the negative action if necessary
         }
 

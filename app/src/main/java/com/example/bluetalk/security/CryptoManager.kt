@@ -1,4 +1,4 @@
-
+package com.example.bluetalk.security
 import android.annotation.SuppressLint
 import java.security.KeyFactory
 import java.security.KeyPairGenerator
@@ -26,7 +26,6 @@ class CryptoManager {
 
     init {
         generateECDHKeyPair()
-
         cipherAES = Cipher.getInstance("AES/ECB/PKCS5Padding")
         iv = ByteArray(cipherAES!!.blockSize).also {
             SecureRandom().nextBytes(it)
@@ -93,7 +92,7 @@ class CryptoManager {
         return String(decryptedBytes!!, Charsets.UTF_8)
     }
 
-    fun isInittialized():Boolean{
+    fun isInitialized():Boolean{
         return sharedSecret!=null
     }
 }

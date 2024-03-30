@@ -46,8 +46,7 @@ interface ChatDao {
         """
         SELECT 
             m.id AS id, 
-            m.clientUuid AS uuid, 
-            u.uuid AS userUuid, 
+            m.clientUuid AS uuid,
             u.address AS address, 
             m.content AS content, 
             m.timestamp AS timestamp, 

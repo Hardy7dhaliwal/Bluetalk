@@ -7,20 +7,14 @@ import android.bluetooth.BluetoothGattCharacteristic
 import android.content.Context
 import android.util.Log
 import com.example.bluetalk.Packet.Payload
-import com.example.bluetalk.bluetooth.BluetalkServer
-import com.example.bluetalk.model.MessageResponse
 import com.example.bluetalk.spec.MESSAGE_UUID
-import com.example.bluetalk.spec.PacketMerger
 import com.example.bluetalk.spec.PacketSplitter
 import com.example.bluetalk.spec.SERVICE_UUID
 import com.google.protobuf.ByteString
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.launchIn
-import kotlinx.coroutines.flow.onEach
 import no.nordicsemi.android.ble.BleManager
 import no.nordicsemi.android.ble.exception.RequestFailedException
-import no.nordicsemi.android.ble.ktx.asResponseFlow
 import no.nordicsemi.android.ble.ktx.suspend
 
 @SuppressLint("LogNotTimber")
@@ -69,21 +63,21 @@ class ClientConnection(
     override fun initialize() {
         createBondInsecure().enqueue()
         requestMtu(512).enqueue()
-        setNotificationCallback(messageCharacteristic)
-            // Merges packets until the entire text is present in the stream [PacketMerger.merge].
-            .merge(PacketMerger())
-            .asResponseFlow<MessageResponse>()
-            .onEach {
-                it.message?.let { msg ->
-                    Log.d(TAG, "Received Message: $msg")
-                    BluetalkServer.processReceivedMsg(msg, device.address)
-                }
-                it.audioBytes?.let {bytes->
-                    Log.d(TAG,"Audio Received")
-                    BluetalkServer.publishAudio(bytes)
-                }
-            }
-            .launchIn(scope)
+//        setNotificationCallback(messageCharacteristic)
+//            // Merges packets until the entire text is present in the stream [PacketMerger.merge].
+//            .merge(PacketMerger())
+//            .asResponseFlow<MessageResponse>()
+//            .onEach {
+//                it.message?.let { msg ->
+//                    Log.d(TAG, "Received Message: $msg")
+//                    BluetalkServer.processReceivedMsg(msg, device.address)
+//                }
+//                it.audioBytes?.let {bytes->
+//                    Log.d(TAG,"Audio Received")
+//                    BluetalkServer.publishAudio(bytes)
+//                }
+//            }
+//            .launchIn(scope)
         //enableNotifications(messageCharacteristic).enqueue()
     }
 
@@ -94,7 +88,7 @@ class ClientConnection(
     suspend fun connect(){
         try {
             connect(device)
-                .retry(4, 500)
+                .retry(4, 400)
                 .useAutoConnect(false)
                 .timeout(0)
                 .suspend()
@@ -168,7 +162,7 @@ class ClientConnection(
                 messageBytes,
                 BluetoothGattCharacteristic.WRITE_TYPE_DEFAULT
             ).split(PacketSplitter())
-                .before{Log.d(TAG,"device: Connected: $isConnected and Ready:$isReady")}
+                .before{Log.d(TAG,"device ${device.address}: Connected: $isConnected and Ready:$isReady")}
                 .enqueue()
             true
         }catch (e:Exception){
